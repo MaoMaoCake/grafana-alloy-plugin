@@ -16,8 +16,6 @@
     <depends>com.intellij.modules.platform</depends>
 
     <extensions defaultExtensionNs="com.intellij">
-        <applicationService
-            serviceImplementation="com.maomaocake.grafanaalloyplugin.catalog.AlloyCatalogService"/>
 
         <fileType
             name="Alloy"
