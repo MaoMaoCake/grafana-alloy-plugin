@@ -11,37 +11,37 @@ import com.intellij.codeInsight.lookup.LookupElement
 import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.openapi.editor.Document
 import com.intellij.patterns.PlatformPatterns
-import com.intellij.patterns.PsiElementPattern
 import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiWhiteSpace
+import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.util.ProcessingContext
 import com.maomaocake.grafanaalloyplugin.AlloyLanguage
 import com.maomaocake.grafanaalloyplugin.catalog.AlloyCatalogService
 import com.maomaocake.grafanaalloyplugin.catalog.AlloyComponent
+import com.maomaocake.grafanaalloyplugin.psi.AlloyAttribute
+import com.maomaocake.grafanaalloyplugin.psi.AlloyBlock
 import com.maomaocake.grafanaalloyplugin.psi.AlloyBlockBody
+import com.maomaocake.grafanaalloyplugin.psi.AlloyBlockLabel
+import com.maomaocake.grafanaalloyplugin.psi.AlloyBlockName
 import com.maomaocake.grafanaalloyplugin.psi.AlloyElementTypes
 import com.maomaocake.grafanaalloyplugin.psi.AlloyFile
+import com.maomaocake.grafanaalloyplugin.psi.AlloyObjectExpr
+import com.maomaocake.grafanaalloyplugin.psi.AlloyStatement
 
 /**
  * Completion for Alloy component declarations.
  *
- * Fires when the caret is on an [AlloyElementTypes.IDENT] leaf whose parent chain reaches a
- * top-level-statement context — either directly under the [AlloyFile] or inside an
- * [AlloyBlockBody]. In practice this is *any* position where the user is starting a block
- * name, which is exactly when we want to surface component suggestions.
+ * Fires on any `IDENT` (or dotted block-name) leaf at a position where a block can start:
+ * the file top level, or directly inside a parent block body. Skips positions inside
+ * expressions / attributes / object literals / labels.
  */
 class AlloyCompletionContributor : CompletionContributor() {
     init {
         extend(
             CompletionType.BASIC,
-            componentNamePattern(),
+            PlatformPatterns.psiElement(AlloyElementTypes.IDENT).withLanguage(AlloyLanguage),
             ComponentNameCompletionProvider(),
         )
     }
-
-    private fun componentNamePattern(): PsiElementPattern.Capture<PsiElement> =
-        PlatformPatterns.psiElement(AlloyElementTypes.IDENT)
-            .withLanguage(AlloyLanguage)
 }
 
 private class ComponentNameCompletionProvider : CompletionProvider<CompletionParameters>() {
@@ -51,19 +51,45 @@ private class ComponentNameCompletionProvider : CompletionProvider<CompletionPar
         context: ProcessingContext,
         result: CompletionResultSet,
     ) {
-        if (!isComponentNamePosition(parameters.position)) return
+        if (!isBlockStartPosition(parameters.position)) return
+
+        // The default prefix is just the current IDENT leaf (e.g. `ex` of `prometheus.ex`).
+        // Extend it backwards across dotted segments so the matcher treats
+        // `prometheus.ex` as a single prefix and only surfaces components whose name
+        // *starts* with that string, rather than CamelHump-matching `ex` against every
+        // component.
+        val typedPrefix = currentDottedPrefix(parameters)
+        val scoped = if (typedPrefix.isEmpty()) result else result.withPrefixMatcher(typedPrefix)
 
         val catalog = AlloyCatalogService.getInstance().catalog
         for (component in catalog.components) {
-            result.addElement(buildLookup(component))
+            scoped.addElement(buildLookup(component))
         }
     }
 
+    /**
+     * Returns the full dotted text ending at the completion offset — e.g. `prometheus.ex`.
+     * Reads the document directly rather than trusting the PSI, because at completion time
+     * the platform has injected a `IntellijIdeaRulezzz` dummy identifier into the tree.
+     */
+    private fun currentDottedPrefix(parameters: CompletionParameters): String {
+        val text = parameters.editor.document.charsSequence
+        var start = parameters.offset
+        while (start > 0) {
+            val c = text[start - 1]
+            if (c.isLetterOrDigit() || c == '_' || c == '.') {
+                start--
+            } else {
+                break
+            }
+        }
+        return text.subSequence(start, parameters.offset).toString()
+    }
+
     private fun buildLookup(component: AlloyComponent): LookupElement {
-        val stability = component.stability
         val tail = buildString {
             append("  — ")
-            append(stability)
+            append(component.stability)
             if (component.community) append(" · community")
             component.exported().firstOrNull()?.let { append(" · ").append(portTypeShort(it)) }
         }
@@ -77,8 +103,6 @@ private class ComponentNameCompletionProvider : CompletionProvider<CompletionPar
 }
 
 private fun lookupStrings(name: String): Set<String> {
-    // Make completion discoverable by namespace or leaf: typing `scrape` should find
-    // `prometheus.scrape`, typing `prom` should find all prometheus.*.
     val parts = name.split('.')
     val set = linkedSetOf(name)
     set += parts
@@ -99,16 +123,19 @@ private fun portTypeShort(t: String): String = when {
  * After the user picks a completion, expand `prometheus.scrape` into a full block template:
  *
  *     prometheus.scrape "name" {
- *         <caret>
+ *
  *     }
  *
- * The caret is placed inside the body so the user can start typing attributes.
+ * The `name` placeholder is pre-selected so the user can type over it.
  */
 private fun insertBlockTemplate(context: InsertionContext, item: LookupElement) {
     val document: Document = context.document
-    val startOffset = context.startOffset
     val tailOffset = context.tailOffset
     val componentName = item.lookupString
+
+    // Replace the *entire dotted prefix* the user has typed (e.g. `prometheus.ex`), not just
+    // the trailing IDENT — otherwise we'd duplicate the namespace.
+    val startOffset = dottedPrefixStart(document, context.startOffset)
 
     // If the user already has trailing text (e.g. partial ` "foo"` or a block body), leave it
     // alone and just replace the identifier range with the component name.
@@ -124,7 +151,6 @@ private fun insertBlockTemplate(context: InsertionContext, item: LookupElement) 
 
     val template = "$componentName \"name\" {\n    \n}"
     document.replaceString(startOffset, tailOffset, template)
-    // Select the placeholder label `name` so the user can type over it.
     val labelStart = startOffset + componentName.length + 2 // + ` "`
     val labelEnd = labelStart + "name".length
     context.editor.caretModel.moveToOffset(labelStart)
@@ -133,48 +159,41 @@ private fun insertBlockTemplate(context: InsertionContext, item: LookupElement) 
     AutoPopupController.getInstance(context.project).autoPopupMemberLookup(context.editor, null)
 }
 
+private fun dottedPrefixStart(document: Document, identStart: Int): Int {
+    val text = document.charsSequence
+    var start = identStart
+    while (start > 0) {
+        val c = text[start - 1]
+        if (c.isLetterOrDigit() || c == '_' || c == '.') start-- else break
+    }
+    return start
+}
+
 /**
- * True when [position] (an IDENT leaf) is in a place where a *block* can start: at the file
- * top level or directly inside another block's body. Excludes positions inside expressions,
- * attribute values, object literals, etc.
+ * True when [position] (an IDENT leaf) sits at a place where a block can start: at the
+ * top of the file, or directly inside a block body, *not* inside an attribute value, object
+ * literal, or block label.
+ *
+ * Walks upward from the leaf, returning false as soon as we hit a context that forbids a
+ * block-start (attribute value, object literal, block label). Returns true once we reach an
+ * `AlloyFile` or `AlloyBlockBody` without hitting a forbidden context.
  */
-private fun isComponentNamePosition(position: PsiElement): Boolean {
-    // Walk up past the IDENT leaf's immediate wrappers (BlockName, IdentifierExpr, etc.) to
-    // find what kind of statement we're in.
-    var cur: PsiElement? = position.parent
-    // An IDENT at a statement-start parses, while the user is still typing, as either a
-    // block_name (when nothing follows) or an identifier_expr (when the parser guessed a
-    // reference). Either way, the grandparent will be a Statement whose parent is a file or
-    // block body.
+private fun isBlockStartPosition(position: PsiElement): Boolean {
+    var cur: PsiElement? = position
     while (cur != null) {
-        val parent = cur.parent ?: return false
-        if (parent is AlloyFile || parent is AlloyBlockBody) return true
-        // Whitespace nodes between statements don't count as a wrapping expression.
-        if (parent is PsiWhiteSpace) {
-            cur = parent
-            continue
+        when (cur) {
+            is AlloyBlockLabel -> return false
+            is AlloyObjectExpr -> return false
+            is AlloyAttribute  -> {
+                // If our leaf is (still) the leading IDENT of the attribute — i.e. the user has
+                // typed the attribute *key* — we don't want to offer component completions
+                // there either. Either way, inside an attribute = not a block-start.
+                return false
+            }
+            is AlloyBlockBody  -> return true
+            is AlloyFile       -> return true
         }
-        // If we hit an AlloyStatement we're in good shape regardless of what's above it —
-        // the user is at a statement boundary.
-        if (parent::class.java.simpleName == "AlloyStatementImpl") return true
-        // Any other parent (expression, array, object literal, attribute) means we're NOT
-        // at a block-start.
-        if (parent::class.java.simpleName != "AlloyBlockNameImpl" &&
-            parent::class.java.simpleName != "AlloyIdentifierExprImpl" &&
-            parent::class.java.simpleName != "AlloyPrimaryExprImpl" &&
-            parent::class.java.simpleName != "AlloyOperExprImpl" &&
-            parent::class.java.simpleName != "AlloyUnaryExprImpl" &&
-            parent::class.java.simpleName != "AlloyPowExprImpl" &&
-            parent::class.java.simpleName != "AlloyMulExprImpl" &&
-            parent::class.java.simpleName != "AlloyAddExprImpl" &&
-            parent::class.java.simpleName != "AlloyCmpExprImpl" &&
-            parent::class.java.simpleName != "AlloyAndExprImpl" &&
-            parent::class.java.simpleName != "AlloyOrExprImpl" &&
-            parent::class.java.simpleName != "AlloyExpressionImpl"
-        ) {
-            return false
-        }
-        cur = parent
+        cur = cur.parent
     }
     return false
 }

@@ -78,6 +78,9 @@
             language="Alloy"
             implementationClass="com.maomaocake.grafanaalloyplugin.completion.AlloyCompletionContributor"/>
 
+        <typedHandler
+            implementation="com.maomaocake.grafanaalloyplugin.completion.AlloyTypedHandler"/>
+
         <targetElementEvaluator
             language="Alloy"
             implementationClass="com.maomaocake.grafanaalloyplugin.references.AlloyTargetElementEvaluator"/>

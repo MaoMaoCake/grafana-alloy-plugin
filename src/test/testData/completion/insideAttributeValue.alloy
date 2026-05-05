@@ -1,0 +1,3 @@
+prometheus.scrape "outer" {
+    job_name = prom<caret>
+}

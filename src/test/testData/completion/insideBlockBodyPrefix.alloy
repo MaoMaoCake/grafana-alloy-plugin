@@ -1,0 +1,3 @@
+prometheus.scrape "outer" {
+    prom<caret>
+}

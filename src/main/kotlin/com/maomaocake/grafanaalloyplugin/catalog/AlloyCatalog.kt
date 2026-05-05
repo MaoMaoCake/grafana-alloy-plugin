@@ -13,8 +13,12 @@ data class AlloyCatalog(
     val generatedAt: String,
     val components: List<AlloyComponent>,
 ) {
-    val byName: Map<String, AlloyComponent> = components.associateBy { it.name }
-    val byNamespace: Map<String, List<AlloyComponent>> = components.groupBy { it.namespace }
+    // Recomputed on every call — Gson populates fields via reflection and skips the primary
+    // constructor entirely, so delegated/lazy/init-block state never runs. The list is small
+    // enough (~200 components) that the cost is invisible; callers that need many lookups
+    // should cache the result themselves.
+    fun byName(): Map<String, AlloyComponent> = components.associateBy { it.name }
+    fun byNamespace(): Map<String, List<AlloyComponent>> = components.groupBy { it.namespace }
 
     companion object {
         val EMPTY = AlloyCatalog(
