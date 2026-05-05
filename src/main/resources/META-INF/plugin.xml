@@ -48,6 +48,10 @@
             language="Alloy"
             implementationClass="com.maomaocake.grafanaalloyplugin.highlight.AlloyCatalogAnnotator"/>
 
+        <lang.documentationProvider
+            language="Alloy"
+            implementationClass="com.maomaocake.grafanaalloyplugin.docs.AlloyDocumentationProvider"/>
+
         <lang.elementManipulator
             forClass="com.maomaocake.grafanaalloyplugin.psi.AlloyOperExpr"
             implementationClass="com.maomaocake.grafanaalloyplugin.psi.AlloyOperExprManipulator"/>

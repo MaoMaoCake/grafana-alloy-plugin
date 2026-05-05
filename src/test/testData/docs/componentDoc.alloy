@@ -1,0 +1,4 @@
+prometheus.scrape "s" {
+    targets    = []
+    forward_to = []
+}
