@@ -70,7 +70,10 @@ private statement_recover ::= !(TERMINATOR | RCURLY)
 attribute ::= IDENT "=" expression
 block     ::= block_name block_label? block_body
 block_name   ::= IDENT (DOT IDENT)*
-block_label  ::= STRING
+block_label  ::= STRING {
+  mixin="com.maomaocake.grafanaalloyplugin.psi.impl.AlloyBlockLabelMixin"
+  implements=["com.maomaocake.grafanaalloyplugin.psi.AlloyPsiElement" "com.intellij.psi.PsiNameIdentifierOwner"]
+}
 block_body   ::= "{" TERMINATOR* (statement (TERMINATOR+ statement)* TERMINATOR*)? "}"
 
 // ----- Expressions (precedence low -> high, per Go token.Precedence) -------

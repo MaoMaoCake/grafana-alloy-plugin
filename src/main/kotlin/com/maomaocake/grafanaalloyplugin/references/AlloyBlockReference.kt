@@ -5,41 +5,61 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiReferenceBase
 import com.intellij.psi.util.PsiTreeUtil
 import com.maomaocake.grafanaalloyplugin.psi.AlloyBlock
+import com.maomaocake.grafanaalloyplugin.psi.AlloyBlockLabel
 import com.maomaocake.grafanaalloyplugin.psi.AlloyOperExpr
 import com.maomaocake.grafanaalloyplugin.psi.AlloyPsiUtil
 
 /**
- * Resolves an Alloy dotted reference (e.g. `prometheus.remote_write.rw_x.receiver`) to the
- * declaring block (e.g. `prometheus.remote_write "rw_x" { ... }`) when one exists in the same
- * file.
+ * Resolves the label segment of an Alloy dotted reference (e.g. the `rw_x` in
+ * `prometheus.remote_write.rw_x.receiver`) to the declaring [AlloyBlockLabel].
  *
- * Strategy: for each [AlloyBlock] in the file, form its *definition path* by concatenating the
- * block-name identifiers with the unquoted label. A reference resolves to that block when the
- * definition path is a strict prefix of the reference's identifier chain (strict, because there
- * must be at least one trailing segment — the export name — for the reference to be meaningful).
- *
- * This works without a component catalog, so multi-segment component names like
- * `prometheus.exporter.cadvisor` are handled automatically.
+ * The reference range is narrowed to the label segment so that:
+ *  - Find Usages on the block label surfaces only the label sites, not the whole chain.
+ *  - Rename rewrites only the label identifier (via the registered
+ *    [com.maomaocake.grafanaalloyplugin.psi.AlloyOperExprManipulator]).
  */
 class AlloyBlockReference(
     element: AlloyOperExpr,
     rangeInElement: TextRange,
-    private val chainTexts: List<String>,
+    private val target: AlloyBlockLabel,
 ) : PsiReferenceBase<AlloyOperExpr>(element, rangeInElement, /* soft = */ true) {
 
-    override fun resolve(): PsiElement? {
-        val file = element.containingFile ?: return null
-        for (block in PsiTreeUtil.findChildrenOfType(file, AlloyBlock::class.java)) {
-            val label = block.blockLabel?.let { AlloyPsiUtil.unquoteLabel(it) } ?: continue
-            val defPath = AlloyPsiUtil.blockNameIdents(block.blockName) + label
-            if (chainTexts.size > defPath.size &&
-                chainTexts.subList(0, defPath.size) == defPath
-            ) {
-                return block.blockLabel
-            }
-        }
-        return null
-    }
+    override fun resolve(): PsiElement = target
 
     override fun getVariants(): Array<Any> = emptyArray()
+
+    companion object {
+        /**
+         * If [oper] is a dotted identifier chain of length ≥ 3 whose prefix matches some block's
+         * `(blockName.idents + label)`, return the range within [oper] covering that label
+         * segment together with the declaring [AlloyBlockLabel]. Otherwise null.
+         *
+         * Block names vary in length (e.g. `prometheus.scrape` vs `prometheus.exporter.cadvisor`),
+         * so the label position isn't fixed — we find it by walking the file's declarations.
+         */
+        fun findTarget(oper: AlloyOperExpr): Pair<TextRange, AlloyBlockLabel>? {
+            val chain = AlloyPsiUtil.identChain(oper) ?: return null
+            if (chain.size < 3) return null
+            val chainTexts = chain.map { it.text }
+            val file = oper.containingFile ?: return null
+
+            for (block in PsiTreeUtil.findChildrenOfType(file, AlloyBlock::class.java)) {
+                val labelPsi = block.blockLabel ?: continue
+                val labelText = AlloyPsiUtil.unquoteLabel(labelPsi) ?: continue
+                val nameIdents = AlloyPsiUtil.blockNameIdents(block.blockName)
+                if (chainTexts.size <= nameIdents.size) continue
+                if (chainTexts.subList(0, nameIdents.size) != nameIdents) continue
+                if (chainTexts[nameIdents.size] != labelText) continue
+
+                val labelIdent = chain[nameIdents.size]
+                val base = oper.textRange.startOffset
+                val range = TextRange(
+                    labelIdent.textRange.startOffset - base,
+                    labelIdent.textRange.endOffset - base,
+                )
+                return range to labelPsi
+            }
+            return null
+        }
+    }
 }

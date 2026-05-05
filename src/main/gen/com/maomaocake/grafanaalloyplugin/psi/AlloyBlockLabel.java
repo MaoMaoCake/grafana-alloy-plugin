@@ -4,7 +4,8 @@ package com.maomaocake.grafanaalloyplugin.psi;
 import java.util.List;
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElement;
+import com.intellij.psi.PsiNameIdentifierOwner;
 
-public interface AlloyBlockLabel extends AlloyPsiElement {
+public interface AlloyBlockLabel extends AlloyPsiElement, PsiNameIdentifierOwner {
 
 }

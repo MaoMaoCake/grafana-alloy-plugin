@@ -3,6 +3,7 @@ package com.maomaocake.grafanaalloyplugin.psi;
 
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElementVisitor;
+import com.intellij.psi.PsiNameIdentifierOwner;
 
 public class AlloyVisitor extends PsiElementVisitor {
 
@@ -36,6 +37,7 @@ public class AlloyVisitor extends PsiElementVisitor {
 
   public void visitBlockLabel(@NotNull AlloyBlockLabel o) {
     visitPsiElement(o);
+    // visitPsiNameIdentifierOwner(o);
   }
 
   public void visitBlockName(@NotNull AlloyBlockName o) {

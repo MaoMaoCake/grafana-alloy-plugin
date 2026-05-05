@@ -1,0 +1,7 @@
+prometheus.remote_write "rw" {
+    endpoint { url = "http://example/push" }
+}
+
+prometheus.scrape "s" {
+    forward_to = [ <warning descr="Unresolved Alloy component reference: `prometheus.remote_write.typo_name.receiver`">prometheus.remote_write.typo_name.receiver</warning> ]
+}

@@ -1,0 +1,14 @@
+prometheus.exporter.cadvisor "container_exporter" {
+    docker_host = "unix:///var/run/docker.sock"
+}
+
+prometheus.scrape "scrape_it" {
+    targets    = prometheus.exporter.cadvisor.container_exporter.targets
+    forward_to = [ prometheus.remote_write.rw.receiver ]
+}
+
+prometheus.remote_write "rw" {
+    endpoint {
+        url = "http://mimir.example/api/v1/push"
+    }
+}

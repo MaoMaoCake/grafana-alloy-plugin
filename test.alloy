@@ -39,6 +39,23 @@ declare "metrics" {
             }
         }
     }
+    prometheus.scrape "scrape_container_exporter_asdf87n89as" {
+        targets    = prometheus.exporter.cadvisor.container_exporter_asdf87n89asdnf.targets
+        forward_to = [ prometheus.remote_write.d.receiver ]
+        }
+    prometheus.scrape "scrape_container_exporter_asdf87n89asss" {
+            targets    = prometheus.exporter.cadvisor.container_exporter_asdf87n89asdnf.targets
+            forward_to = [ prometheus.remote_write.d.receiver ]
+            }
+    prometheus.remote_write "d" {
+            endpoint {
+                url = "{{.LGTMCfg.Mimir.URL}}"
+                basic_auth {
+                    username = "asdf87n89asdnf-mimir"
+                    password = "{{.Credentials.mimir_password}}"
+                }
+            }
+        }
 }
 
 declare "logs" {

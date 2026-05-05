@@ -1,0 +1,7 @@
+prometheus.remote_write <error descr="Duplicate component label: `prometheus.remote_write.rw`">"rw"</error> {
+    endpoint { url = "http://a/push" }
+}
+
+prometheus.remote_write <error descr="Duplicate component label: `prometheus.remote_write.rw`">"rw"</error> {
+    endpoint { url = "http://b/push" }
+}
