@@ -1,0 +1,9 @@
+prometheus.remote_write "renamed" {
+    endpoint {
+        url = "http://mimir/push"
+    }
+}
+
+prometheus.scrape "s" {
+    forward_to = [ prometheus.remote_write.renamed.receiver ]
+}

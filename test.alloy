@@ -41,13 +41,13 @@ declare "metrics" {
     }
     prometheus.scrape "scrape_container_exporter_asdf87n89as" {
         targets    = prometheus.exporter.cadvisor.container_exporter_asdf87n89asdnf.targets
-        forward_to = [ prometheus.remote_write.d.receiver ]
+        forward_to = [ prometheus.remote_write.c.receiver ]
         }
     prometheus.scrape "scrape_container_exporter_asdf87n89asss" {
             targets    = prometheus.exporter.cadvisor.container_exporter_asdf87n89asdnf.targets
-            forward_to = [ prometheus.remote_write.d.receiver ]
+            forward_to = [ prometheus.remote_write.c.receiver ]
             }
-    prometheus.remote_write "d" {
+    prometheus.remote_write "c" {
             endpoint {
                 url = "{{.LGTMCfg.Mimir.URL}}"
                 basic_auth {

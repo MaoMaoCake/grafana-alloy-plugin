@@ -43,6 +43,14 @@
             forClass="com.maomaocake.grafanaalloyplugin.psi.AlloyOperExpr"
             implementationClass="com.maomaocake.grafanaalloyplugin.psi.AlloyOperExprManipulator"/>
 
+        <lang.findUsagesProvider
+            language="Alloy"
+            implementationClass="com.maomaocake.grafanaalloyplugin.references.AlloyFindUsagesProvider"/>
+
+        <targetElementEvaluator
+            language="Alloy"
+            implementationClass="com.maomaocake.grafanaalloyplugin.references.AlloyTargetElementEvaluator"/>
+
         <additionalTextAttributes scheme="Default" file="colorSchemes/AlloyDefault.xml"/>
         <additionalTextAttributes scheme="Darcula" file="colorSchemes/AlloyDarcula.xml"/>
     </extensions>

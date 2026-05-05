@@ -1,0 +1,10 @@
+prometheus.remote_write "d" {
+    endpoint {
+        url = "http://mimir/push"
+    }
+}
+
+prometheus.scrape "s" {
+    targets    = []
+    forward_to = [ prometheus.remote_write.d.receiver ]
+}
