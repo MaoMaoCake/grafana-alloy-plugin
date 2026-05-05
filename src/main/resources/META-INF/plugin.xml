@@ -8,12 +8,31 @@
         Language support for <a href="https://grafana.com/docs/alloy/latest/">Grafana Alloy</a>
         configuration files (<code>*.alloy</code>).<br>
         <br>
-        Current features: file type, lexer, parser, and syntax highlighting.<br>
-        Planned: component autocomplete, port-type-aware validation, <code>alloy validate</code> integration,
-        and an embedded view of the Alloy web UI.
+        Features:
+        <ul>
+          <li>Parser + syntax highlighting (per-namespace colors)</li>
+          <li>Completion for components, arguments, and references (port-type-aware)</li>
+          <li>Go-to-definition, Find Usages, and Rename for labeled blocks and <code>declare</code> modules</li>
+          <li>Inspections: unknown / missing-required arguments, duplicate labels, port-type mismatches, stability warnings</li>
+          <li>Inline docs (Ctrl/Cmd-Q) with component / argument / reference details</li>
+          <li>Structure view, folding, brace matcher, commenter</li>
+        </ul>
+        <br>
+        This plugin is free and built in my spare time. If it's useful to you, please consider
+        sponsoring development: <b><a href="https://ko-fi.com/REPLACE_WITH_YOUR_HANDLE">ko-fi.com/REPLACE_WITH_YOUR_HANDLE</a></b>.
     ]]></description>
 
     <depends>com.intellij.modules.platform</depends>
+
+    <actions>
+        <action
+            id="GrafanaAlloy.SponsorAction"
+            class="com.maomaocake.grafanaalloyplugin.actions.SponsorAction"
+            text="Sponsor the Grafana Alloy Plugin"
+            description="Open the sponsor page in your browser">
+            <add-to-group group-id="HelpMenu" anchor="last"/>
+        </action>
+    </actions>
 
     <extensions defaultExtensionNs="com.intellij">
 
