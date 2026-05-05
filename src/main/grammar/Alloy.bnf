@@ -1,0 +1,113 @@
+{
+  parserClass="com.maomaocake.grafanaalloyplugin.parser.AlloyParser"
+  parserUtilClass="com.intellij.lang.parser.GeneratedParserUtilBase"
+
+  implements="com.maomaocake.grafanaalloyplugin.psi.AlloyPsiElement"
+  extends="com.intellij.extapi.psi.ASTWrapperPsiElement"
+
+  psiClassPrefix="Alloy"
+  psiImplClassSuffix="Impl"
+  psiPackage="com.maomaocake.grafanaalloyplugin.psi"
+  psiImplPackage="com.maomaocake.grafanaalloyplugin.psi.impl"
+
+  elementTypeHolderClass="com.maomaocake.grafanaalloyplugin.psi.AlloyElementTypes"
+  elementTypeClass="com.maomaocake.grafanaalloyplugin.psi.AlloyElementType"
+  tokenTypeClass="com.maomaocake.grafanaalloyplugin.psi.AlloyTokenType"
+
+  tokens = [
+    IDENT      = "IDENT"
+    STRING     = "STRING"
+    RAW_STRING = "RAW_STRING"
+    NUMBER     = "NUMBER"
+    FLOAT      = "FLOAT"
+    BOOL       = "BOOL"
+    NULL       = "NULL"
+
+    ASSIGN     = "="
+    COMMA      = ","
+    DOT        = "."
+    LCURLY     = "{"
+    RCURLY     = "}"
+    LPAREN     = "("
+    RPAREN     = ")"
+    LBRACK     = "["
+    RBRACK     = "]"
+
+    OR         = "||"
+    AND        = "&&"
+    NOT        = "!"
+    EQ         = "=="
+    NEQ        = "!="
+    LT         = "<"
+    LTE        = "<="
+    GT         = ">"
+    GTE        = ">="
+    PLUS       = "+"
+    MINUS      = "-"
+    STAR       = "*"
+    SLASH      = "/"
+    PERCENT    = "%"
+    CARET      = "^"
+
+    LINE_COMMENT  = "LINE_COMMENT"
+    BLOCK_COMMENT = "BLOCK_COMMENT"
+    TERMINATOR    = "TERMINATOR"
+  ]
+}
+
+// ----- File / body ---------------------------------------------------------
+
+alloyFile ::= TERMINATOR* body_contents?
+private body_contents ::= statement (TERMINATOR+ statement)* TERMINATOR*
+
+// ----- Statements ----------------------------------------------------------
+
+statement ::= attribute | block {
+  recoverWhile = statement_recover
+}
+private statement_recover ::= !(TERMINATOR | RCURLY)
+
+attribute ::= IDENT "=" expression
+block     ::= block_name block_label? block_body
+block_name   ::= IDENT (DOT IDENT)*
+block_label  ::= STRING
+block_body   ::= "{" TERMINATOR* (statement (TERMINATOR+ statement)* TERMINATOR*)? "}"
+
+// ----- Expressions (precedence low -> high, per Go token.Precedence) -------
+
+expression ::= or_expr
+
+or_expr  ::= and_expr  (OR  and_expr)*
+and_expr ::= cmp_expr  (AND cmp_expr)*
+cmp_expr ::= add_expr  (cmp_op add_expr)*
+add_expr ::= mul_expr  (add_op mul_expr)*
+mul_expr ::= pow_expr  (mul_op pow_expr)*
+pow_expr ::= unary_expr (CARET pow_expr)?     // right-assoc
+unary_expr ::= (MINUS | NOT) unary_expr | oper_expr
+
+private cmp_op ::= EQ | NEQ | LT | LTE | GT | GTE
+private add_op ::= PLUS | MINUS
+private mul_op ::= STAR | SLASH | PERCENT
+
+oper_expr ::= primary_expr oper_tail*
+private oper_tail ::= access_expr | index_expr | call_expr
+access_expr ::= DOT IDENT
+index_expr  ::= "[" expression "]"
+call_expr   ::= "(" expression_list? ")"
+
+private expression_list ::= expression (COMMA expression)* COMMA?
+
+primary_expr ::= literal_expr
+               | identifier_expr
+               | paren_expr
+               | array_expr
+               | object_expr
+
+identifier_expr ::= IDENT
+paren_expr      ::= "(" expression ")"
+array_expr      ::= "[" TERMINATOR* (expression (COMMA TERMINATOR* expression)* COMMA? TERMINATOR*)? "]"
+object_expr     ::= "{" TERMINATOR* (field (COMMA TERMINATOR* field)* COMMA? TERMINATOR*)? "}"
+field           ::= field_key "=" expression
+field_key       ::= IDENT | STRING
+
+literal_expr ::= STRING | RAW_STRING | NUMBER | FLOAT | BOOL | NULL

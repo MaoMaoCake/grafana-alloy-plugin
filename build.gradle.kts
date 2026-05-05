@@ -1,7 +1,11 @@
+import org.jetbrains.grammarkit.tasks.GenerateLexerTask
+import org.jetbrains.grammarkit.tasks.GenerateParserTask
+
 plugins {
     id("java")
     id("org.jetbrains.kotlin.jvm") version "2.1.20"
     id("org.jetbrains.intellij.platform") version "2.10.2"
+    id("org.jetbrains.grammarkit") version "2022.3.2.2"
 }
 
 group = "com.maomaocake"
@@ -24,6 +28,10 @@ dependencies {
         // Add plugin dependencies for compilation here, example:
         // bundledPlugin("com.intellij.java")
     }
+
+    // ParsingTestCase extends JUnit 3's TestCase; keep JUnit 3 on the test classpath.
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.opentest4j:opentest4j:1.3.0")
 }
 
 intellijPlatform {
@@ -38,11 +46,34 @@ intellijPlatform {
     }
 }
 
+sourceSets {
+    named("main") {
+        java.srcDirs("src/main/gen")
+    }
+}
+
+val generateAlloyLexer = tasks.register<GenerateLexerTask>("generateAlloyLexer") {
+    sourceFile.set(file("src/main/grammar/Alloy.flex"))
+    targetOutputDir.set(file("src/main/gen/com/maomaocake/grafanaalloyplugin/lexer"))
+    purgeOldFiles.set(true)
+}
+
+val generateAlloyParser = tasks.register<GenerateParserTask>("generateAlloyParser") {
+    sourceFile.set(file("src/main/grammar/Alloy.bnf"))
+    targetRootOutputDir.set(file("src/main/gen"))
+    pathToParser.set("com/maomaocake/grafanaalloyplugin/parser/AlloyParser.java")
+    pathToPsiRoot.set("com/maomaocake/grafanaalloyplugin/psi")
+    purgeOldFiles.set(true)
+}
+
 tasks {
-    // Set the JVM compatibility versions
     withType<JavaCompile> {
         sourceCompatibility = "21"
         targetCompatibility = "21"
+        dependsOn(generateAlloyLexer, generateAlloyParser)
+    }
+    withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
+        dependsOn(generateAlloyLexer, generateAlloyParser)
     }
 }
 

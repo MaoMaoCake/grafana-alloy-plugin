@@ -1,0 +1,119 @@
+declare "metrics" {
+    prometheus.exporter.self "self_exporter_asdf87n89asdnf" {}
+    prometheus.scrape "scrape_self_monitorasdf87n89asdnf" {
+        targets = prometheus.exporter.self.self_exporter_asdf87n89asdnf.targets
+        forward_to = [prometheus.remote_write.rw_asdf87n89asdnf.receiver]
+    }
+
+    prometheus.exporter.unix "unix_exporter_asdf87n89asdnf" {}
+    prometheus.scrape "scrape_unix_exporter_asdf87n89asdnf" {
+        targets    = prometheus.exporter.unix.unix_exporter_asdf87n89asdnf.targets
+        forward_to = [prometheus.remote_write.rw_asdf87n89asdnf.receiver]
+    }
+
+
+    prometheus.exporter.windows "windows_exporter_asdf87n89asdnf" {
+        enabled_collectors = ["cpu", "cs", "logical_disk", "net", "os", "service", "system", "time", "diskdrive"]
+    }
+
+    // Configure a prometheus.scrape component to collect windows metrics.
+    prometheus.scrape "scrape_windows_exporter_asdf87n89asdnf" {
+    targets    = prometheus.exporter.windows.windows_exporter_asdf87n89asdnf.targets
+    forward_to = [prometheus.remote_write.rw_asdf87n89asdnf.receiver]
+    }
+
+    prometheus.exporter.cadvisor "container_exporter_asdf87n89asdnf" {
+        docker_host = "unix:///var/run/docker.sock"
+    }
+    prometheus.scrape "scrape_container_exporter_asdf87n89asdnf" {
+    targets    = prometheus.exporter.cadvisor.container_exporter_asdf87n89asdnf.targets
+    forward_to = [ prometheus.remote_write.rw_asdf87n89asdnf.receiver ]
+    }
+
+    prometheus.remote_write "rw_asdf87n89asdnf" {
+        endpoint {
+            url = "{{.LGTMCfg.Mimir.URL}}"
+            basic_auth {
+                username = "asdf87n89asdnf-mimir"
+                password = "{{.Credentials.mimir_password}}"
+            }
+        }
+    }
+}
+
+declare "logs" {
+    loki.relabel "journal" {
+        forward_to = []
+        rule {
+            source_labels = ["__journal__systemd_unit"]
+            target_label  = "unit"
+        }
+        rule {
+            source_labels = ["__journal__boot_id"]
+            target_label  = "boot_id"
+        }
+        rule {
+            source_labels = ["__journal__transport"]
+            target_label  = "transport"
+        }
+        rule {
+            source_labels = ["__journal_priority_keyword"]
+            target_label  = "level"
+        }
+        rule {
+            source_labels = ["__journal__hostname"]
+            target_label  = "instance"
+        }
+    }
+    loki.source.journal "read" {
+        forward_to = [loki.write.lw_asdf87n89asdnf.receiver,]
+        relabel_rules = loki.relabel.journal.rules
+        labels = {
+        "job" = "log_exporter",
+        }
+    }
+
+    loki.source.windowsevent "application_logsasdf87n89asdnf"  {
+    eventlog_name = "Application"
+    forward_to = [loki.write.lw_asdf87n89asdnf.receiver]
+    }
+
+    discovery.docker "container_logs_asdf87n89asdnf" {
+    host = "unix:///var/run/docker.sock"
+    }
+
+    loki.source.docker "container_logs_asdf87n89asdnf" {
+    host       = "unix:///var/run/docker.sock"
+    targets    = discovery.docker.container_logs_asdf87n89asdnf.targets
+    labels     = {"app" = "docker"}
+    forward_to = [loki.write.lw_asdf87n89asdnf.receiver]
+    }
+
+    local.file_match "files_asdf87n89asdnf" {
+        path_targets = [
+            {__path__ = "/tmp/*.log"},
+        ]
+    }
+
+    loki.source.file "tmpfiles" {
+        targets    = local.file_match.files_asdf87n89asdnf.targets
+        forward_to = [loki.write.lw_asdf87n89asdnf.receiver]
+    }
+
+    loki.write "lw_asdf87n89asdnf" {
+        endpoint {
+            url ="{{.LGTMCfg.Loki.URL}}"
+            headers = {
+                "X-Scope-OrgID" = "{{.TenantID}}",
+            }
+            basic_auth {
+                username = "asdf87n89asdnf-loki"
+                password = "{{.Credentials.loki_password}}"
+            }
+        }
+    }
+}
+
+metrics "metrics" {}
+
+logs "logs" {}

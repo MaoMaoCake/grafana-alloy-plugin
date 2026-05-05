@@ -1,28 +1,41 @@
 <!-- Plugin Configuration File: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
 <idea-plugin>
-    <!-- Unique identifier of the plugin. It should be FQN, cannot be changed between the plugin versions. -->
     <id>com.maomaocake.grafana-alloy-plugin</id>
+    <name>Grafana Alloy</name>
+    <vendor url="https://github.com/maomaocake">maomaocake</vendor>
 
-    <!-- Public plugin name should be written in Title Case.
-         Guidelines: https://plugins.jetbrains.com/docs/marketplace/best-practices-for-listing.html#plugin-name -->
-    <name>Grafana-alloy-plugin</name>
-
-    <!-- A displayed Vendor name or Organization ID displayed on the Plugins Page. -->
-    <vendor url="https://www.yourcompany.com">YourCompany</vendor>
-
-    <!-- Description of the plugin displayed on the Plugin Page and IDE Plugin Manager.
-         Guidelines: https://plugins.jetbrains.com/docs/marketplace/best-practices-for-listing.html#plugin-description -->
     <description><![CDATA[
-        Enter short description for your plugin here.<br>
-        <em>most HTML tags may be used</em>
+        Language support for <a href="https://grafana.com/docs/alloy/latest/">Grafana Alloy</a>
+        configuration files (<code>*.alloy</code>).<br>
+        <br>
+        Current features: file type, lexer, parser, and syntax highlighting.<br>
+        Planned: component autocomplete, port-type-aware validation, <code>alloy validate</code> integration,
+        and an embedded view of the Alloy web UI.
     ]]></description>
 
-    <!-- Product and plugin compatibility requirements.
-         Read more: https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
     <depends>com.intellij.modules.platform</depends>
 
-    <!-- Extensions defined by the plugin.
-         Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
     <extensions defaultExtensionNs="com.intellij">
+        <fileType
+            name="Alloy"
+            implementationClass="com.maomaocake.grafanaalloyplugin.AlloyFileType"
+            fieldName="INSTANCE"
+            language="Alloy"
+            extensions="alloy"/>
+
+        <lang.parserDefinition
+            language="Alloy"
+            implementationClass="com.maomaocake.grafanaalloyplugin.parser.AlloyParserDefinition"/>
+
+        <lang.syntaxHighlighterFactory
+            language="Alloy"
+            implementationClass="com.maomaocake.grafanaalloyplugin.highlight.AlloySyntaxHighlighterFactory"/>
+
+        <annotator
+            language="Alloy"
+            implementationClass="com.maomaocake.grafanaalloyplugin.highlight.AlloyNamespaceAnnotator"/>
+
+        <additionalTextAttributes scheme="Default" file="colorSchemes/AlloyDefault.xml"/>
+        <additionalTextAttributes scheme="Darcula" file="colorSchemes/AlloyDarcula.xml"/>
     </extensions>
 </idea-plugin>

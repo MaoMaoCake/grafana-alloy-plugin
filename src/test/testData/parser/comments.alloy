@@ -1,0 +1,9 @@
+// top-level line comment
+/* top-level
+   block comment */
+
+prometheus.scrape "default" {
+  // inside block
+  targets    = [] /* trailing block comment */
+  forward_to = []
+}

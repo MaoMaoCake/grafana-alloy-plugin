@@ -1,0 +1,54 @@
+// This is a generated file. Not intended for manual editing.
+package com.maomaocake.grafanaalloyplugin.psi.impl;
+
+import java.util.List;
+import org.jetbrains.annotations.*;
+import com.intellij.lang.ASTNode;
+import com.intellij.psi.PsiElement;
+import com.intellij.psi.PsiElementVisitor;
+import com.intellij.psi.util.PsiTreeUtil;
+import static com.maomaocake.grafanaalloyplugin.psi.AlloyElementTypes.*;
+import com.intellij.extapi.psi.ASTWrapperPsiElement;
+import com.maomaocake.grafanaalloyplugin.psi.*;
+
+public class AlloyOperExprImpl extends ASTWrapperPsiElement implements AlloyOperExpr {
+
+  public AlloyOperExprImpl(@NotNull ASTNode node) {
+    super(node);
+  }
+
+  public void accept(@NotNull AlloyVisitor visitor) {
+    visitor.visitOperExpr(this);
+  }
+
+  @Override
+  public void accept(@NotNull PsiElementVisitor visitor) {
+    if (visitor instanceof AlloyVisitor) accept((AlloyVisitor)visitor);
+    else super.accept(visitor);
+  }
+
+  @Override
+  @NotNull
+  public List<AlloyAccessExpr> getAccessExprList() {
+    return PsiTreeUtil.getChildrenOfTypeAsList(this, AlloyAccessExpr.class);
+  }
+
+  @Override
+  @NotNull
+  public List<AlloyCallExpr> getCallExprList() {
+    return PsiTreeUtil.getChildrenOfTypeAsList(this, AlloyCallExpr.class);
+  }
+
+  @Override
+  @NotNull
+  public List<AlloyIndexExpr> getIndexExprList() {
+    return PsiTreeUtil.getChildrenOfTypeAsList(this, AlloyIndexExpr.class);
+  }
+
+  @Override
+  @NotNull
+  public AlloyPrimaryExpr getPrimaryExpr() {
+    return findNotNullChildByClass(AlloyPrimaryExpr.class);
+  }
+
+}

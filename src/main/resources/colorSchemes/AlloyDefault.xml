@@ -1,0 +1,59 @@
+<scheme name="Default" version="142" parent_scheme="Default">
+    <attributes>
+        <option name="ALLOY_NAMESPACE_PROMETHEUS">
+            <value>
+                <option name="FOREGROUND" value="E6522C"/>
+            </value>
+        </option>
+        <option name="ALLOY_NAMESPACE_LOKI">
+            <value>
+                <option name="FOREGROUND" value="2C8C4F"/>
+            </value>
+        </option>
+        <option name="ALLOY_NAMESPACE_MIMIR">
+            <value>
+                <option name="FOREGROUND" value="B24D9C"/>
+            </value>
+        </option>
+        <option name="ALLOY_NAMESPACE_OTELCOL">
+            <value>
+                <option name="FOREGROUND" value="1F6FEB"/>
+            </value>
+        </option>
+        <option name="ALLOY_NAMESPACE_PYROSCOPE">
+            <value>
+                <option name="FOREGROUND" value="B36B00"/>
+            </value>
+        </option>
+        <option name="ALLOY_NAMESPACE_DISCOVERY">
+            <value>
+                <option name="FOREGROUND" value="0A7C7C"/>
+            </value>
+        </option>
+        <option name="ALLOY_NAMESPACE_FARO">
+            <value>
+                <option name="FOREGROUND" value="C54B6C"/>
+            </value>
+        </option>
+        <option name="ALLOY_NAMESPACE_BEYLA">
+            <value>
+                <option name="FOREGROUND" value="8C6E00"/>
+            </value>
+        </option>
+        <option name="ALLOY_NAMESPACE_LOCAL">
+            <value>
+                <option name="FOREGROUND" value="555555"/>
+            </value>
+        </option>
+        <option name="ALLOY_NAMESPACE_REMOTE">
+            <value>
+                <option name="FOREGROUND" value="6A4A9E"/>
+            </value>
+        </option>
+        <option name="ALLOY_NAMESPACE_DATABASE_OBSERVABILITY">
+            <value>
+                <option name="FOREGROUND" value="2F5D9B"/>
+            </value>
+        </option>
+    </attributes>
+</scheme>

@@ -1,0 +1,59 @@
+<scheme name="Darcula" version="142" parent_scheme="Darcula">
+    <attributes>
+        <option name="ALLOY_NAMESPACE_PROMETHEUS">
+            <value>
+                <option name="FOREGROUND" value="FF8A65"/>
+            </value>
+        </option>
+        <option name="ALLOY_NAMESPACE_LOKI">
+            <value>
+                <option name="FOREGROUND" value="7BC97B"/>
+            </value>
+        </option>
+        <option name="ALLOY_NAMESPACE_MIMIR">
+            <value>
+                <option name="FOREGROUND" value="D68BD0"/>
+            </value>
+        </option>
+        <option name="ALLOY_NAMESPACE_OTELCOL">
+            <value>
+                <option name="FOREGROUND" value="6AA4F7"/>
+            </value>
+        </option>
+        <option name="ALLOY_NAMESPACE_PYROSCOPE">
+            <value>
+                <option name="FOREGROUND" value="E0A44A"/>
+            </value>
+        </option>
+        <option name="ALLOY_NAMESPACE_DISCOVERY">
+            <value>
+                <option name="FOREGROUND" value="4EC9B0"/>
+            </value>
+        </option>
+        <option name="ALLOY_NAMESPACE_FARO">
+            <value>
+                <option name="FOREGROUND" value="E48FA8"/>
+            </value>
+        </option>
+        <option name="ALLOY_NAMESPACE_BEYLA">
+            <value>
+                <option name="FOREGROUND" value="D4B34A"/>
+            </value>
+        </option>
+        <option name="ALLOY_NAMESPACE_LOCAL">
+            <value>
+                <option name="FOREGROUND" value="A9B7C6"/>
+            </value>
+        </option>
+        <option name="ALLOY_NAMESPACE_REMOTE">
+            <value>
+                <option name="FOREGROUND" value="B58DD9"/>
+            </value>
+        </option>
+        <option name="ALLOY_NAMESPACE_DATABASE_OBSERVABILITY">
+            <value>
+                <option name="FOREGROUND" value="7FA9D6"/>
+            </value>
+        </option>
+    </attributes>
+</scheme>
