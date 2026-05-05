@@ -16,6 +16,9 @@
     <depends>com.intellij.modules.platform</depends>
 
     <extensions defaultExtensionNs="com.intellij">
+        <applicationService
+            serviceImplementation="com.maomaocake.grafanaalloyplugin.catalog.AlloyCatalogService"/>
+
         <fileType
             name="Alloy"
             implementationClass="com.maomaocake.grafanaalloyplugin.AlloyFileType"
@@ -70,6 +73,10 @@
         <lang.findUsagesProvider
             language="Alloy"
             implementationClass="com.maomaocake.grafanaalloyplugin.references.AlloyFindUsagesProvider"/>
+
+        <completion.contributor
+            language="Alloy"
+            implementationClass="com.maomaocake.grafanaalloyplugin.completion.AlloyCompletionContributor"/>
 
         <targetElementEvaluator
             language="Alloy"

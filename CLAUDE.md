@@ -25,6 +25,7 @@ Use the Gradle wrapper (`./gradlew`); do not rely on a system Gradle.
 - `./gradlew verifyPlugin` — run the IntelliJ Plugin Verifier against the IDE version declared in `build.gradle.kts`. Required before publishing.
 - `./gradlew buildPlugin` — produce the distributable zip in `build/distributions/`.
 - `./gradlew publishPlugin` — publish to JetBrains Marketplace (requires credentials; don't run unprompted).
+- `catalog-generator/build-catalog.sh` — regenerates `src/main/resources/alloy/components.json` from a pinned Alloy release. Requires Go 1.24+ and network. Run once per Alloy version bump (see `catalog-generator/README.md`). Shallow-clones Alloy into a temp dir and writes JSON only — doesn't touch anything else in the repo.
 
 Gradle **configuration cache** and **build cache** are both enabled (`gradle.properties`). If a task behaves strangely after edits to build logic, rerun with `--no-configuration-cache` to rule it out.
 
