@@ -1,0 +1,5 @@
+declare "my_mod" {
+    loki.write "x" {
+        <caret>
+    }
+}

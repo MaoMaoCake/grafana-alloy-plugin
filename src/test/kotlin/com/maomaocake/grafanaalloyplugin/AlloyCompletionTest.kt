@@ -137,6 +137,31 @@ class AlloyCompletionTest : BasePlatformTestCase() {
         )
     }
 
+    fun testStringAttributeInsertsEmptyQuotedValue() {
+        myFixture.configureByFile("attrInsertString_before.alloy")
+        val items = myFixture.completeBasic()
+        val urlItem = items.first { it.lookupString == "url" }
+        myFixture.lookup.currentItem = urlItem
+        myFixture.finishLookup('\n')
+        myFixture.checkResultByFile("attrInsertString_after.alloy")
+    }
+
+    fun testListAttributeInsertsEmptyBrackets() {
+        myFixture.configureByFile("attrInsertList_before.alloy")
+        // `forward_<caret>` is a unique prefix match; completeBasic auto-inserts.
+        myFixture.completeBasic()
+        myFixture.checkResultByFile("attrInsertList_after.alloy")
+    }
+
+    fun testTargetsAttributeInsertsBareRhs() {
+        myFixture.configureByFile("attrInsertTargets_before.alloy")
+        val items = myFixture.completeBasic()
+        val targetsItem = items.first { it.lookupString == "targets" }
+        myFixture.lookup.currentItem = targetsItem
+        myFixture.finishLookup('\n')
+        myFixture.checkResultByFile("attrInsertTargets_after.alloy")
+    }
+
     fun testInsideAttributeValueDoesNotCompleteComponents() {
         myFixture.configureByFile("insideAttributeValue.alloy")
         val lookups = myFixture.completeBasic()?.map { it.lookupString } ?: emptyList()

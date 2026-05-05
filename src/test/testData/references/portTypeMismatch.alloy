@@ -1,0 +1,12 @@
+loki.write "logs_sink" {
+    endpoint { url = "http://loki/push" }
+}
+
+prometheus.remote_write "metrics_sink" {
+    endpoint { url = "http://mimir/push" }
+}
+
+prometheus.scrape "s" {
+    targets    = []
+    forward_to = [ <warning descr="Port-type mismatch: `forward_to` expects Prometheus MetricsReceiver, but `loki.write.logs_sink.receiver` exports Loki LogsReceiver">loki.write.logs_sink.receiver</warning> ]
+}

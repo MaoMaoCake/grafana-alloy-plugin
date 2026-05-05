@@ -88,7 +88,7 @@ private class AlloyCompletionProvider : CompletionProvider<CompletionParameters>
                     .withPresentableText(arg.name)
                     .withTypeText(arg.goType, true)
                     .withTailText(if (arg.required) "  — required" else null, true)
-                    .withInsertHandler(::insertAttributeTemplate)
+                    .withInsertHandler { ctx, _ -> insertAttributeTemplate(ctx, arg.goType) }
             )
         }
         for (block in blocksHere) {
@@ -396,7 +396,8 @@ private fun portTypeShort(t: String): String = when {
 // Insertion handlers
 // -----------------------------------------------------------------------------
 
-/** Top-level `prometheus.scrape "name" { <caret> }` template. */
+/** Top-level `prometheus.scrape "name" { <caret> }` template, with indentation matching the
+ *  surrounding line and the project's indent step. */
 private fun insertComponentTemplate(context: InsertionContext, item: LookupElement) {
     val document = context.document
     val tailOffset = context.tailOffset
@@ -413,7 +414,9 @@ private fun insertComponentTemplate(context: InsertionContext, item: LookupEleme
         return
     }
 
-    val template = "$componentName \"name\" {\n    \n}"
+    val lineIndent = currentLineIndent(document, startOffset)
+    val inner = lineIndent + indentStep(context)
+    val template = "$componentName \"name\" {\n$inner\n$lineIndent}"
     document.replaceString(startOffset, tailOffset, template)
     val labelStart = startOffset + componentName.length + 2 // + ` "`
     val labelEnd = labelStart + "name".length
@@ -422,14 +425,25 @@ private fun insertComponentTemplate(context: InsertionContext, item: LookupEleme
     AutoPopupController.getInstance(context.project).autoPopupMemberLookup(context.editor, null)
 }
 
-/** `attr_name = <caret>` template. */
-private fun insertAttributeTemplate(context: InsertionContext, item: LookupElement) {
+/**
+ * Inserts an attribute assignment. The value template depends on the attribute's Go type:
+ *   - strings / durations / URLs → `name = "<caret>"`
+ *   - slices → `name = [<caret>]`
+ *   - maps → `name = {<caret>}`
+ *   - booleans → `name = <caret>` (so either `true` / `false` can be typed)
+ *   - other scalars (numbers, etc.) → `name = <caret>`
+ *
+ * Re-pops completion so the user can pick a reference / value right away.
+ */
+private fun insertAttributeTemplate(context: InsertionContext, goType: String) {
     val document = context.document
     val tailOffset = context.tailOffset
-    val name = item.lookupString
     val startOffset = dottedPrefixStart(document, context.startOffset)
+    // What the user already typed as an identifier — e.g. `url`.
+    val name = document.charsSequence.subSequence(startOffset, context.startOffset).toString()
+        .ifEmpty { context.document.charsSequence.subSequence(startOffset, tailOffset).toString() }
 
-    // If there's already ` = value` following, don't double-insert.
+    // If there's already ` = value` after the caret, just replace the identifier and bail.
     val afterCaret = document.charsSequence.subSequence(
         tailOffset,
         minOf(tailOffset + 8, document.textLength),
@@ -439,9 +453,46 @@ private fun insertAttributeTemplate(context: InsertionContext, item: LookupEleme
         context.editor.caretModel.moveToOffset(startOffset + name.length)
         return
     }
-    document.replaceString(startOffset, tailOffset, "$name = ")
-    context.editor.caretModel.moveToOffset(startOffset + name.length + 3)
+
+    val (rhs, caretOffsetInRhs) = valueTemplateFor(goType)
+    val insertion = "$name = $rhs"
+    document.replaceString(startOffset, tailOffset, insertion)
+    val assignedCaret = startOffset + name.length + 3 /* ` = ` */ + caretOffsetInRhs
+    context.editor.caretModel.moveToOffset(assignedCaret)
     AutoPopupController.getInstance(context.project).autoPopupMemberLookup(context.editor, null)
+}
+
+/**
+ * Returns (rhs-text, caret-offset-within-rhs) for the value side of an attribute. The caret
+ * lands inside the quotes / brackets / braces so the user can start typing immediately, and
+ * our completion contributor will re-pop with context-appropriate suggestions (reference
+ * completion for port-typed lists, for instance).
+ *
+ * Special case: `[]discovery.Target` ("Targets") is the one port type whose *exports* are
+ * themselves lists (see catalog: every targets export is `[]discovery.Target`). Wrapping a
+ * `foo.targets` reference in another `[]` produces a list-of-lists — a type error. For that
+ * port type we leave the RHS bare so the user drops straight into a reference completion.
+ */
+private fun valueTemplateFor(goType: String): Pair<String, Int> = when {
+    goType == "[]discovery.Target"        -> "" to 0
+    goType.startsWith("[]")               -> "[]" to 1
+    goType.startsWith("map[")             -> "{}" to 1
+    goType == "bool"                      -> "" to 0
+    isStringishType(goType)               -> "\"\"" to 1
+    else                                  -> "" to 0
+}
+
+private fun isStringishType(goType: String): Boolean = when (goType) {
+    "string",
+    "time.Duration",
+    "alloytypes.Secret",
+    "alloytypes.OptionalSecret",
+    "config.URL",
+    "units.Base2Bytes",
+    -> true
+    else -> goType.endsWith(".Secret") ||
+        goType.endsWith(".URL") ||
+        goType.endsWith(".Duration")
 }
 
 /** Nested block — `endpoint { <caret> }` or `endpoint "label" { <caret> }` when labeled. */
@@ -449,8 +500,13 @@ private fun insertNestedBlockTemplate(context: InsertionContext, block: CatalogB
     val document = context.document
     val tailOffset = context.tailOffset
     val startOffset = dottedPrefixStart(document, context.startOffset)
+
+    val lineIndent = currentLineIndent(document, startOffset)
+    val inner = lineIndent + indentStep(context)
     val needsLabel = block.label
-    val header = if (needsLabel) "${block.name} \"name\" {\n    \n}" else "${block.name} {\n    \n}"
+    val header =
+        if (needsLabel) "${block.name} \"name\" {\n$inner\n$lineIndent}"
+        else "${block.name} {\n$inner\n$lineIndent}"
     document.replaceString(startOffset, tailOffset, header)
     if (needsLabel) {
         val labelStart = startOffset + block.name.length + 2
@@ -458,8 +514,9 @@ private fun insertNestedBlockTemplate(context: InsertionContext, block: CatalogB
         context.editor.caretModel.moveToOffset(labelStart)
         context.editor.selectionModel.setSelection(labelStart, labelEnd)
     } else {
-        val bodyCaret = startOffset + block.name.length + 3 // "  { "
-        context.editor.caretModel.moveToOffset(bodyCaret + 1 + 4)
+        // Caret lands on the empty inner line, after its leading indent.
+        val bodyCaret = startOffset + block.name.length + 2 /* ` {` */ + 1 /* \n */ + inner.length
+        context.editor.caretModel.moveToOffset(bodyCaret)
     }
     AutoPopupController.getInstance(context.project).autoPopupMemberLookup(context.editor, null)
 }
@@ -491,4 +548,37 @@ private fun dottedPrefixStart(document: Document, identStart: Int): Int {
         if (c.isLetterOrDigit() || c == '_' || c == '.') start-- else break
     }
     return start
+}
+
+/** Returns the leading whitespace (spaces/tabs) of the line that contains [offset]. */
+private fun currentLineIndent(document: Document, offset: Int): String {
+    val text = document.charsSequence
+    val lineStart = (offset downTo 0).firstOrNull { it == 0 || text[it - 1] == '\n' } ?: 0
+    var i = lineStart
+    while (i < text.length && (text[i] == ' ' || text[i] == '\t') && i < offset) i++
+    return text.subSequence(lineStart, i).toString()
+}
+
+/**
+ * Returns one indent step as a string. Detects the indent by sniffing the first indented line
+ * in the current file — honors whatever the user is already using (tab or N spaces). Falls
+ * back to 4 spaces for empty / top-level files.
+ */
+private fun indentStep(context: InsertionContext): String {
+    val text = context.document.charsSequence
+    var i = 0
+    while (i < text.length) {
+        // Advance to the start of the next line.
+        while (i < text.length && text[i] != '\n') i++
+        if (i >= text.length) break
+        i++ // past '\n'
+        // Count leading whitespace. Stop at the first non-whitespace or the next newline.
+        val lineStart = i
+        while (i < text.length && (text[i] == ' ' || text[i] == '\t')) i++
+        if (i > lineStart && i < text.length && text[i] != '\n') {
+            // Use the first character class as the indent unit.
+            return if (text[lineStart] == '\t') "\t" else " ".repeat(i - lineStart)
+        }
+    }
+    return "    "
 }

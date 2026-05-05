@@ -1,0 +1,5 @@
+prometheus.scrape "s" {
+    targets    = []
+    forward_to = []
+    <warning descr="Unknown argument `tagets` on `prometheus.scrape`">tagets</warning> = []
+}

@@ -1,0 +1,3 @@
+prometheus.scrape "s" {
+    forward_<caret>
+}

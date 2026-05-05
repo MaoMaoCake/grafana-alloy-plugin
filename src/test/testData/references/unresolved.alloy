@@ -3,5 +3,6 @@ prometheus.remote_write "rw" {
 }
 
 prometheus.scrape "s" {
+    targets    = []
     forward_to = [ <warning descr="Unresolved Alloy component reference: `prometheus.remote_write.typo_name.receiver`">prometheus.remote_write.typo_name.receiver</warning> ]
 }

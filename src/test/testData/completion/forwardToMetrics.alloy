@@ -1,0 +1,16 @@
+prometheus.remote_write "rw" {
+    endpoint {
+        url = "http://mimir/push"
+    }
+}
+
+loki.write "logs" {
+    endpoint {
+        url = "http://loki/push"
+    }
+}
+
+prometheus.scrape "s" {
+    targets    = []
+    forward_to = [ <caret> ]
+}

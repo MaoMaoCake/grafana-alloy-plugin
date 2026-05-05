@@ -1,0 +1,18 @@
+discovery.kubernetes "pods" {
+    role = "pod"
+}
+
+prometheus.exporter.cadvisor "cadvisor" {
+    docker_host = "unix:///var/run/docker.sock"
+}
+
+prometheus.remote_write "rw" {
+    endpoint {
+        url = "http://mimir/push"
+    }
+}
+
+prometheus.scrape "s" {
+    targets    = [ <caret> ]
+    forward_to = [ prometheus.remote_write.rw.receiver ]
+}

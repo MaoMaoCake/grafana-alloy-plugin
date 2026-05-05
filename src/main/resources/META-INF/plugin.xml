@@ -44,6 +44,10 @@
             language="Alloy"
             implementationClass="com.maomaocake.grafanaalloyplugin.highlight.AlloyAttributeKeyAnnotator"/>
 
+        <annotator
+            language="Alloy"
+            implementationClass="com.maomaocake.grafanaalloyplugin.highlight.AlloyCatalogAnnotator"/>
+
         <lang.elementManipulator
             forClass="com.maomaocake.grafanaalloyplugin.psi.AlloyOperExpr"
             implementationClass="com.maomaocake.grafanaalloyplugin.psi.AlloyOperExprManipulator"/>

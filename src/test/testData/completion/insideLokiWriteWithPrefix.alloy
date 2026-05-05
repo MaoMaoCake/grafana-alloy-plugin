@@ -1,0 +1,3 @@
+loki.write "tst" {
+    prom<caret>
+}

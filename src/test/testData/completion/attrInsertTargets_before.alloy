@@ -1,0 +1,4 @@
+prometheus.scrape "s" {
+    forward_to = []
+    targ<caret>
+}

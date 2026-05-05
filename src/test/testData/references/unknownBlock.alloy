@@ -1,0 +1,5 @@
+prometheus.remote_write "rw" {
+    <warning descr="Unknown nested block `eendpoint` in `prometheus.remote_write`">eendpoint</warning> {
+        url = "http://mimir/push"
+    }
+}
