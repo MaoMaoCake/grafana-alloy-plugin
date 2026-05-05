@@ -89,7 +89,9 @@ private cmp_op ::= EQ | NEQ | LT | LTE | GT | GTE
 private add_op ::= PLUS | MINUS
 private mul_op ::= STAR | SLASH | PERCENT
 
-oper_expr ::= primary_expr oper_tail*
+oper_expr ::= primary_expr oper_tail* {
+  mixin="com.maomaocake.grafanaalloyplugin.psi.impl.AlloyOperExprMixin"
+}
 private oper_tail ::= access_expr | index_expr | call_expr
 access_expr ::= DOT IDENT
 index_expr  ::= "[" expression "]"

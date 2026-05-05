@@ -8,12 +8,11 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static com.maomaocake.grafanaalloyplugin.psi.AlloyElementTypes.*;
-import com.intellij.extapi.psi.ASTWrapperPsiElement;
 import com.maomaocake.grafanaalloyplugin.psi.*;
 
-public class AlloyOperExprImpl extends ASTWrapperPsiElement implements AlloyOperExpr {
+public class AlloyOperExprImpl extends AlloyOperExprMixin implements AlloyOperExpr {
 
-  public AlloyOperExprImpl(@NotNull ASTNode node) {
+  public AlloyOperExprImpl(ASTNode node) {
     super(node);
   }
 

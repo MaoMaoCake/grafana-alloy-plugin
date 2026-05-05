@@ -1,0 +1,18 @@
+prometheus.exporter.cadvisor "container_exporter_asdf87n89asdnf" {
+    docker_host = "unix:///var/run/docker.sock"
+}
+
+prometheus.scrape "scrape_container_exporter_asdf87n89asdnf" {
+    targets    = prometheus.exporter.cadvisor.container_exporter_asdf87n89asdnf.targets
+    forward_to = [ prometheus.remote_write.rw_asdf87n89asdnf.receiver ]
+}
+
+prometheus.remote_write "rw_asdf87n89asdnf" {
+    endpoint {
+        url = "http://mimir.example/api/v1/push"
+        basic_auth {
+            username = "asdf87n89asdnf-mimir"
+            password = "redacted"
+        }
+    }
+}
