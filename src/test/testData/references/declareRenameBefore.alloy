@@ -1,0 +1,7 @@
+declare "add" {
+    argument "a" {}
+}
+
+add "default" {
+    a = 1
+}

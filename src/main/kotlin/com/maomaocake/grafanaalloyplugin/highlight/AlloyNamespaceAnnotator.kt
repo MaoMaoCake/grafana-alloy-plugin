@@ -29,10 +29,21 @@ class AlloyNamespaceAnnotator : Annotator {
         val identNodes = element.node.getChildren(TokenSet.create(AlloyElementTypes.IDENT))
         if (identNodes.isEmpty()) return
 
-        AlloyColors.namespaceKey(identNodes[0].text)?.let { key ->
+        val namespaceKey = AlloyColors.namespaceKey(identNodes[0].text)
+
+        if (namespaceKey != null) {
             holder.newSilentAnnotation(HighlightSeverity.INFORMATION)
                 .range(identNodes[0].textRange)
-                .textAttributes(key)
+                .textAttributes(namespaceKey)
+                .create()
+        } else if (identNodes.size == 1) {
+            // Single-segment, unknown namespace → this is a nested block name (e.g. `endpoint`,
+            // `basic_auth`, or a module invocation). Color it so it stands out from attribute
+            // keys; multi-segment unknowns fall through to the hash-derived palette below so the
+            // segments still differentiate visually.
+            holder.newSilentAnnotation(HighlightSeverity.INFORMATION)
+                .range(identNodes[0].textRange)
+                .textAttributes(AlloyColors.NESTED_BLOCK_NAME)
                 .create()
         }
 

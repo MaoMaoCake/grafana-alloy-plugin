@@ -131,6 +131,6 @@ declare "logs" {
     }
 }
 
-metrics "metrics" {}
+metrics "my_metrics" {}
 
-logs "logs" {}
+logs "my_logs" {}

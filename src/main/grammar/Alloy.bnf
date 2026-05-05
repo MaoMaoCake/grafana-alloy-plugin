@@ -69,7 +69,9 @@ private statement_recover ::= !(TERMINATOR | RCURLY)
 
 attribute ::= IDENT "=" expression
 block     ::= block_name block_label? block_body
-block_name   ::= IDENT (DOT IDENT)*
+block_name   ::= IDENT (DOT IDENT)* {
+  mixin="com.maomaocake.grafanaalloyplugin.psi.impl.AlloyBlockNameMixin"
+}
 block_label  ::= STRING {
   mixin="com.maomaocake.grafanaalloyplugin.psi.impl.AlloyBlockLabelMixin"
   implements=["com.maomaocake.grafanaalloyplugin.psi.AlloyPsiElement" "com.intellij.psi.PsiNameIdentifierOwner"]

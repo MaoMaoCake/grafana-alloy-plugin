@@ -1,0 +1,13 @@
+declare "add" {
+    argument "a" {}
+    argument "b" {}
+
+    export "sum" {
+        value = argument.a.value + argument.b.value
+    }
+}
+
+add "default" {
+    a = 1
+    b = 2
+}

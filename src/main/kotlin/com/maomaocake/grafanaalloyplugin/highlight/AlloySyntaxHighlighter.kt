@@ -12,7 +12,9 @@ import com.maomaocake.grafanaalloyplugin.lexer.AlloyLexerAdapter
 import com.maomaocake.grafanaalloyplugin.psi.AlloyElementTypes
 
 object AlloyColors {
-    val IDENTIFIER     = createTextAttributesKey("ALLOY_IDENTIFIER", DefaultLanguageHighlighterColors.IDENTIFIER)
+    val IDENTIFIER         = createTextAttributesKey("ALLOY_IDENTIFIER", DefaultLanguageHighlighterColors.IDENTIFIER)
+    val ATTRIBUTE_KEY      = createTextAttributesKey("ALLOY_ATTRIBUTE_KEY", DefaultLanguageHighlighterColors.INSTANCE_FIELD)
+    val NESTED_BLOCK_NAME  = createTextAttributesKey("ALLOY_NESTED_BLOCK_NAME", DefaultLanguageHighlighterColors.CLASS_NAME)
     val KEYWORD        = createTextAttributesKey("ALLOY_KEYWORD", DefaultLanguageHighlighterColors.KEYWORD)
     val STRING         = createTextAttributesKey("ALLOY_STRING", DefaultLanguageHighlighterColors.STRING)
     val NUMBER         = createTextAttributesKey("ALLOY_NUMBER", DefaultLanguageHighlighterColors.NUMBER)

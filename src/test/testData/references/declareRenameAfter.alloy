@@ -1,0 +1,7 @@
+declare "sum" {
+    argument "a" {}
+}
+
+sum "default" {
+    a = 1
+}

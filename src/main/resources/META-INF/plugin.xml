@@ -39,9 +39,33 @@
             language="Alloy"
             implementationClass="com.maomaocake.grafanaalloyplugin.highlight.AlloyReferenceAnnotator"/>
 
+        <annotator
+            language="Alloy"
+            implementationClass="com.maomaocake.grafanaalloyplugin.highlight.AlloyAttributeKeyAnnotator"/>
+
         <lang.elementManipulator
             forClass="com.maomaocake.grafanaalloyplugin.psi.AlloyOperExpr"
             implementationClass="com.maomaocake.grafanaalloyplugin.psi.AlloyOperExprManipulator"/>
+
+        <lang.elementManipulator
+            forClass="com.maomaocake.grafanaalloyplugin.psi.AlloyBlockName"
+            implementationClass="com.maomaocake.grafanaalloyplugin.psi.AlloyBlockNameManipulator"/>
+
+        <lang.braceMatcher
+            language="Alloy"
+            implementationClass="com.maomaocake.grafanaalloyplugin.editor.AlloyBraceMatcher"/>
+
+        <lang.commenter
+            language="Alloy"
+            implementationClass="com.maomaocake.grafanaalloyplugin.editor.AlloyCommenter"/>
+
+        <lang.foldingBuilder
+            language="Alloy"
+            implementationClass="com.maomaocake.grafanaalloyplugin.editor.AlloyFoldingBuilder"/>
+
+        <lang.psiStructureViewFactory
+            language="Alloy"
+            implementationClass="com.maomaocake.grafanaalloyplugin.editor.AlloyStructureViewFactory"/>
 
         <lang.findUsagesProvider
             language="Alloy"

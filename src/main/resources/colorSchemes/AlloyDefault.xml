@@ -55,5 +55,16 @@
                 <option name="FOREGROUND" value="2F5D9B"/>
             </value>
         </option>
+        <option name="ALLOY_NESTED_BLOCK_NAME">
+            <value>
+                <option name="FOREGROUND" value="7A3E9D"/>
+                <option name="FONT_TYPE" value="1"/>
+            </value>
+        </option>
+        <option name="ALLOY_ATTRIBUTE_KEY">
+            <value>
+                <option name="FOREGROUND" value="871094"/>
+            </value>
+        </option>
     </attributes>
 </scheme>

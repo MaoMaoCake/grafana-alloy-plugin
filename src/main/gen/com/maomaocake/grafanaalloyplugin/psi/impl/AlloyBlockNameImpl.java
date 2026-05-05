@@ -8,12 +8,11 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static com.maomaocake.grafanaalloyplugin.psi.AlloyElementTypes.*;
-import com.intellij.extapi.psi.ASTWrapperPsiElement;
 import com.maomaocake.grafanaalloyplugin.psi.*;
 
-public class AlloyBlockNameImpl extends ASTWrapperPsiElement implements AlloyBlockName {
+public class AlloyBlockNameImpl extends AlloyBlockNameMixin implements AlloyBlockName {
 
-  public AlloyBlockNameImpl(@NotNull ASTNode node) {
+  public AlloyBlockNameImpl(ASTNode node) {
     super(node);
   }
 
