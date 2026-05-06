@@ -113,7 +113,7 @@ Each bullet = one `<extensions>` registration in `plugin.xml` plus a Kotlin clas
 - `com.intellij.lang.findUsagesProvider` and `com.intellij.refactoring.renameHandler` — rename label propagates to all `component.LABEL.*` references.
 - `com.intellij.externalAnnotator` — the `alloy validate` driver (see §6). Use `ExternalAnnotator` rather than `Annotator` because it's expensive and off-EDT.
 - `com.intellij.toolWindow` — "Alloy UI" tool window hosting an embedded browser pointed at the running Alloy instance (see §7).
-- `com.intellij.projectConfigurable` — Settings pane: path to `alloy` binary, catalog version (read-only), "run validate on save" toggle, minimum stability level, Alloy UI URL (default `http://localhost:12345`).
+- `com.intellij.projectConfigurable` — Settings pane: path to `alloy` binary, **Alloy version dropdown** (selects which bundled catalog drives completion / inspections, see §8), "run validate on save" toggle, minimum stability level, Alloy UI URL (default `http://localhost:12345`).
 
 No `<depends>` on Java/other bundled plugins is required for any of the above — keep the depend list limited to `com.intellij.modules.platform` so the plugin loads in all JetBrains IDEs (IDEA, GoLand, PyCharm, WebStorm, etc.), which is a real user-experience win since Alloy users are rarely Java developers.
 
@@ -136,7 +136,44 @@ A running `alloy` process serves a web UI on `http://localhost:12345` by default
 - **Lifecycle**: reuse one `JBCefBrowser` per project; dispose it with the tool window. Don't auto-poll in the background — let the embedded UI handle its own refresh.
 - **Non-goals for v1**: launching/managing the Alloy process, auth (Alloy's UI is unauthenticated by default), remote-host discovery. Users point the tool window at whatever URL their Alloy instance exposes.
 
-## 8. Milestones
+## 8. Multi-version catalog support
+
+Real users run a mix of Alloy versions in production (a team might be on v1.7 while newer fleets have v1.9). Shipping a single catalog pinned to "the latest" release causes false-positive inspections (a v1.9-only argument flagged in a v1.7 config) and missing completions (a v1.7 argument removed in v1.9 invisible to v1.7 users). The plugin should let users pick which Alloy version it validates against.
+
+**Data layout**
+
+- Ship multiple catalogs in the plugin jar: `src/main/resources/alloy/catalogs/<version>/components.json`, one per supported Alloy minor release. A small `manifest.json` alongside lists available versions and which one is the default.
+- Generator in `catalog-generator/build-catalog.sh` already takes `ALLOY_VERSION` — just run it N times, once per version, committing each JSON. Keep the set small (3–4 releases, rolling window).
+- Plugin binary size is the cost: ~500 KB per version. At 4 versions ~2 MB total, acceptable.
+
+**Settings surface**
+
+- New settings page under *Settings → Languages & Frameworks → Alloy*:
+  - **Alloy version** dropdown. Default: "latest bundled". Options: each bundled version + "auto-detect" (see below).
+  - Read-only display of what catalog is currently active (version tag + component count) so users know what they're getting.
+- Persisted as a project-level setting (different projects may target different Alloy versions). Fall back to an application-level default when no project override exists.
+
+**Auto-detect**
+
+- If the user has the Alloy binary configured (M4 validator path), run `alloy --version` once at project open and select the nearest bundled catalog. Cache the result.
+- If no binary is configured, fall back to the latest bundled catalog.
+- Keep this optional; some users deliberately author configs for a different version than their local install.
+
+**Runtime wiring**
+
+- `AlloyCatalogService` is currently `@Service(Level.APP)` with a single bundled catalog. Move to `@Service(Level.PROJECT)` and pick the right JSON based on the project setting. Keep the singleton load cached so the file isn't re-parsed on every lookup.
+- A settings change fires a re-load + DaemonCodeAnalyzer restart so open files get their inspections refreshed.
+
+**Ties to the validator** (§6)
+
+When M4 lands, the version dropdown and the `alloy` binary path live in the same settings page — mismatches are surface-able there: if the user picked catalog v1.7 but the binary reports v1.9, show a subtle "version mismatch" banner with a one-click "sync to binary" action.
+
+**Non-goals**
+
+- Downloading catalogs on demand. All versions ship inside the plugin jar; no network calls at runtime. If a new Alloy release is needed we ship a plugin update.
+- Per-file version overrides. Project-level granularity is enough — nobody targets two Alloy versions in the same directory.
+
+## 9. Milestones
 
 Each milestone is independently mergeable and leaves the plugin usable.
 
@@ -176,7 +213,14 @@ Each milestone is independently mergeable and leaves the plugin usable.
 - Doc-link gutter icons.
 - `verifyPlugin` clean run against the pinned platform version.
 
-## 9. Testing approach
+**M6 — Multi-version catalog (§8)**
+
+- Bundle 3–4 catalogs under `resources/alloy/catalogs/<version>/components.json` + `manifest.json`.
+- Promote `AlloyCatalogService` to a project-level service that picks its catalog from a persisted setting.
+- Settings page with an Alloy-version dropdown; optional auto-detect from the `alloy` binary (depends on M4).
+- On settings change, refresh the DaemonCodeAnalyzer so inspections re-run against the new catalog.
+
+## 10. Testing approach
 
 - **Lexer/parser**: `LexerTestCase`, `ParsingTestCase` with fixture files under `src/test/testData/parser/`.
 - **Completion**: `BasePlatformTestCase` + `myFixture.completeBasic()`; assert the full set of lookup strings for representative contexts.
@@ -184,7 +228,7 @@ Each milestone is independently mergeable and leaves the plugin usable.
 - **Catalog loader**: plain JVM unit test over a checked-in miniature JSON.
 - **External validator**: unit test the stderr parser against recorded fixture strings. Integration test gated behind an env var (`ALLOY_BIN`), skipped in CI when unset.
 
-## 10. Open questions
+## 11. Open questions
 
 These need to be resolved before or during the affected milestone, not up front:
 
@@ -195,7 +239,7 @@ These need to be resolved before or during the affected milestone, not up front:
 - **Labels scope**: confirm whether labels are unique per component name, per namespace, or globally. Affects duplicate-label inspection.
 - **Multi-file configs**: `alloy validate` accepts a directory. Decide whether in-IDE resolution should cross files in the same directory for reference checks (probably yes, but needs a caching story).
 
-## 11. Risks
+## 12. Risks
 
 - **Catalog staleness.** Every Alloy release can add/rename components. Mitigation: regenerate catalog in a scheduled CI job, ship a new plugin version when upstream releases, degrade gracefully (unknown components become warnings, not errors).
 - **Grammar drift.** Alloy's syntax has been stable but isn't frozen. Mitigation: keep the parser permissive around expressions; lean on `alloy validate` as the source of truth for deep checks.
