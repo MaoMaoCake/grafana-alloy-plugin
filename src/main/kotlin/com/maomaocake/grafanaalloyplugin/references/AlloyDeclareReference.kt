@@ -3,8 +3,6 @@ package com.maomaocake.grafanaalloyplugin.references
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiReferenceBase
-import com.intellij.psi.util.PsiTreeUtil
-import com.maomaocake.grafanaalloyplugin.psi.AlloyBlock
 import com.maomaocake.grafanaalloyplugin.psi.AlloyBlockLabel
 import com.maomaocake.grafanaalloyplugin.psi.AlloyBlockName
 import com.maomaocake.grafanaalloyplugin.psi.AlloyPsiUtil
@@ -43,7 +41,7 @@ class AlloyDeclareReference(
             if (name == "declare") return null
 
             val file = blockName.containingFile ?: return null
-            for (block in PsiTreeUtil.findChildrenOfType(file, AlloyBlock::class.java)) {
+            for (block in AlloyBlockIndex.visibleBlocks(file)) {
                 if (block === blockName.parent) continue
                 val nameIdents = AlloyPsiUtil.blockNameIdents(block.blockName)
                 if (nameIdents.size != 1 || nameIdents[0] != "declare") continue

@@ -1,0 +1,4 @@
+prometheus.scrape "test" {
+    targets = prometheus.exporter.unix.unix_exporter_asdf87n89asdnf.targets
+    forward_to = [prometheus.remote_write.test.receiver]
+}

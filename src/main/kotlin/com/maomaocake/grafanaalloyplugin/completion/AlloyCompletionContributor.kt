@@ -20,6 +20,7 @@ import com.maomaocake.grafanaalloyplugin.catalog.AlloyCatalogService
 import com.maomaocake.grafanaalloyplugin.catalog.AlloyComponent
 import com.maomaocake.grafanaalloyplugin.psi.AlloyAttribute
 import com.maomaocake.grafanaalloyplugin.psi.AlloyBlock
+import com.maomaocake.grafanaalloyplugin.references.AlloyBlockIndex
 import com.maomaocake.grafanaalloyplugin.psi.AlloyBlockBody
 import com.maomaocake.grafanaalloyplugin.psi.AlloyBlockLabel
 import com.maomaocake.grafanaalloyplugin.psi.AlloyElementTypes
@@ -120,7 +121,7 @@ private class AlloyCompletionProvider : CompletionProvider<CompletionParameters>
     ) {
         val file = parameters.originalFile
         val catalog = AlloyCatalogService.getInstance().catalog
-        for (block in PsiTreeUtil.findChildrenOfType(file, AlloyBlock::class.java)) {
+        for (block in AlloyBlockIndex.visibleBlocks(file)) {
             val label = block.blockLabel?.let { AlloyPsiUtil.unquoteLabel(it) } ?: continue
             val nameIdents = AlloyPsiUtil.blockNameIdents(block.blockName)
             val declaredName = nameIdents.joinToString(".")

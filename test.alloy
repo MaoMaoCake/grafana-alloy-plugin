@@ -134,3 +134,9 @@ declare "logs" {
 metrics "my_metrics" {}
 
 logs "my_logs" {}
+
+prometheus.remote_write "test" {
+    endpoint {
+        url = "test"
+    }
+}
