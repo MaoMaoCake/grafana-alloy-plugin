@@ -1,0 +1,6 @@
+prometheus.remote_write "rw" {
+    endpoint {
+        url = "https://${DB_HOST}/api"
+        bearer_token = "<warning descr="Unknown env variable: `DB_TYPO` is not in the configured envfile">${DB_TYPO}</warning>"
+    }
+}

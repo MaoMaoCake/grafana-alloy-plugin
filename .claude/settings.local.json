@@ -3,7 +3,8 @@
     "allow": [
       "WebFetch(domain:grafana.com)",
       "Read(//private/tmp/alloy-scout/alloy/internal/tools/docs_generator/**)",
-      "Read(//private/tmp/alloy-scout/alloy/**)"
+      "Read(//private/tmp/alloy-scout/alloy/**)",
+      "Bash(./gradlew test *)"
     ]
   }
 }

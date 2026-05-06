@@ -137,6 +137,6 @@ logs "my_logs" {}
 
 prometheus.remote_write "test" {
     endpoint {
-        url = "test"
+        url = "${MIMIR_URL}"
     }
 }

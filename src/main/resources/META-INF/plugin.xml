@@ -67,6 +67,20 @@
             language="Alloy"
             implementationClass="com.maomaocake.grafanaalloyplugin.highlight.AlloyCatalogAnnotator"/>
 
+        <annotator
+            language="Alloy"
+            implementationClass="com.maomaocake.grafanaalloyplugin.envfile.AlloyEnvVarAnnotator"/>
+
+        <completion.contributor
+            language="Alloy"
+            implementationClass="com.maomaocake.grafanaalloyplugin.envfile.AlloyEnvVarCompletionContributor"/>
+
+        <projectConfigurable
+            parentId="language.frameworks"
+            instance="com.maomaocake.grafanaalloyplugin.envfile.AlloyEnvFileConfigurable"
+            id="com.maomaocake.grafanaalloyplugin.settings.envfile"
+            displayName="Alloy"/>
+
         <lang.documentationProvider
             language="Alloy"
             implementationClass="com.maomaocake.grafanaalloyplugin.docs.AlloyDocumentationProvider"/>
