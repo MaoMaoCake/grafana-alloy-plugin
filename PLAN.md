@@ -220,7 +220,45 @@ Each milestone is independently mergeable and leaves the plugin usable.
 - Settings page with an Alloy-version dropdown; optional auto-detect from the `alloy` binary (depends on M4).
 - On settings change, refresh the DaemonCodeAnalyzer so inspections re-run against the new catalog.
 
-## 10. Testing approach
+**M7 — Free-tier quality-of-life (§10)**
+
+- No-destination + dead-config warnings (catalog + directory index driven).
+- Autocomplete pre-fills required fields on block-template insertion.
+- Live templates + *File → New → Alloy Pipeline* templates.
+- Breadcrumb bar (`BreadcrumbsProvider`).
+- TODO tool-window integration (`IndexPatternBuilder`).
+
+**M8 — Pro tier (gated, §10)**
+
+- Secrets check using catalog's `alloytypes.Secret` type information.
+- Deprecated-argument warning (depends on M6 multi-version catalogs).
+- `alloy run` Run Configuration with streaming output + embedded localhost viewer (composes M4 validator plumbing + §7 `JBCefBrowser`).
+- Settings-level feature flag for the paid tier (license-key mechanism TBD based on post-v0.1.0 monetization decision).
+
+## 10. Backlog — post-M5 features
+
+Selected ideas sized and flagged for eventual work. Ordering here is rough priority; items are grouped with the milestone that would own them.
+
+**Free-tier quality-of-life** (M7)
+
+- **No-destination warning** — WARNING on a receiver-style export that no `forward_to` references. Catches dangling `prometheus.remote_write "x" {}` blocks. Uses the same directory-scoped block index we already have. Size: ~1 hour.
+- **Dead-config warning** — WARNING on a labeled block that's declared but never referenced *and* has no exports consumed elsewhere. Overlaps with no-destination but also catches dead discovery blocks. Size: ~1 hour once no-destination lands (shares the "who references whom?" pass).
+- **Autocomplete pre-fills required fields** — when inserting a block template from completion, stub out every required arg with `name = <caret>` lines so the user sees what's mandatory. Requires walking the catalog for required args on insert. Size: ~1–2 hours.
+- **Live templates** — `scrape<Tab>` expands to a `prometheus.scrape "…" { … }` block with tab-stops. Separate muscle-memory from completion. Also `pipeline<Tab>` for a canonical discovery→scrape→remote_write scaffold. Ship a small starter set; users can author more via `Settings → Live Templates`. Size: ~1 hour.
+- **File → New templates** — menu items like *New → Alloy → Prometheus pipeline*, *Loki pipeline*, *OTel receiver*, etc. Separate UI affordance from the in-editor live templates. Size: ~30 min.
+- **Breadcrumb bar** — the strip at the top of the editor showing enclosing-block path, e.g. `prometheus.remote_write "rw" › endpoint › basic_auth`. Useful in deeply nested OTel configs. Implementation is a `BreadcrumbsProvider` extension. Size: ~30 min.
+- **TODO tool-window integration** — make `// TODO` / `// FIXME` inside Alloy files picked up by the platform's TODO view. One-line `IndexPatternBuilder` registration once we declare the language participates in the platform's comment-based indexer. Size: ~15 min.
+- **Envfile `${…}` completion** *(shipped post-v0.1.0)* — project-level envfile setting + completion inside `${…}` placeholders in Alloy strings + unknown-var warning, gated by a "show values" toggle that defaults off to avoid leaking secrets on a screenshare.
+
+**Pro-tier** (M8, gated)
+
+- **Secrets check** — WARNING on likely-plaintext secrets: a string value assigned to `password`, `bearer_token`, `api_key`, etc. when the value doesn't look like a `sys.env(…)`, `local.file(…)`, `remote.vault(…)`, or `${…}` reference. Heuristic per-attribute: we already know from the catalog which args are `alloytypes.Secret` / `alloytypes.OptionalSecret`. Size: ~2 hours for the core detector; additional time if we ship a "convert to `local.file` secret" quick fix.
+- **Deprecated-argument warning** — relies on §8 multi-version catalogs. Compare the selected catalog to a "next version" catalog bundled alongside it; any arg in the current version but removed/renamed in next gets a strike-through + weak warning with the replacement name. Requires at least two bundled versions to be useful. Size: ~half day on top of M6.
+- **`alloy run` + built-in localhost viewer** — combines M4's validator work with §7's embedded UI: new Run Configuration that starts `alloy run <file>` as an `OSProcessHandler`, streams stdout/stderr to a Run tool window, and opens the `JBCefBrowser` viewer at the instance's listen address (default `http://localhost:12345`) once the process reports ready. Lifecycle: process stops → viewer collapses to an empty state. Settings: binary path (shared with validator), listen address override. Multi-day.
+
+The free/pro split here is deliberate: items 1–8 add polish everyone will use; items 9–11 are the ones platform engineers pay for (correctness + running). Revisit after v0.1.0 install data tells us whether a paid tier is worth pursuing at all.
+
+## 11. Testing approach
 
 - **Lexer/parser**: `LexerTestCase`, `ParsingTestCase` with fixture files under `src/test/testData/parser/`.
 - **Completion**: `BasePlatformTestCase` + `myFixture.completeBasic()`; assert the full set of lookup strings for representative contexts.
@@ -228,7 +266,7 @@ Each milestone is independently mergeable and leaves the plugin usable.
 - **Catalog loader**: plain JVM unit test over a checked-in miniature JSON.
 - **External validator**: unit test the stderr parser against recorded fixture strings. Integration test gated behind an env var (`ALLOY_BIN`), skipped in CI when unset.
 
-## 11. Open questions
+## 12. Open questions
 
 These need to be resolved before or during the affected milestone, not up front:
 
@@ -239,7 +277,7 @@ These need to be resolved before or during the affected milestone, not up front:
 - **Labels scope**: confirm whether labels are unique per component name, per namespace, or globally. Affects duplicate-label inspection.
 - **Multi-file configs**: `alloy validate` accepts a directory. Decide whether in-IDE resolution should cross files in the same directory for reference checks (probably yes, but needs a caching story).
 
-## 12. Risks
+## 13. Risks
 
 - **Catalog staleness.** Every Alloy release can add/rename components. Mitigation: regenerate catalog in a scheduled CI job, ship a new plugin version when upstream releases, degrade gracefully (unknown components become warnings, not errors).
 - **Grammar drift.** Alloy's syntax has been stable but isn't frozen. Mitigation: keep the parser permissive around expressions; lean on `alloy validate` as the source of truth for deep checks.
