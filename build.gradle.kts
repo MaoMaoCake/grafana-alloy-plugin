@@ -37,12 +37,28 @@ dependencies {
 intellijPlatform {
     pluginConfiguration {
         ideaVersion {
-            sinceBuild = "252.25557"
+            sinceBuild = "231"
+            // no untilBuild — upper bound set by the Marketplace per release.
         }
 
         changeNotes = """
             Initial version
         """.trimIndent()
+    }
+
+    // `./gradlew verifyPlugin` downloads each of these IDEs and runs IntelliJ's Plugin
+    // Verifier against our jar. Covers every minor release from 2023.1 onwards.
+    pluginVerification {
+        ides {
+            ide("IC", "2023.1")
+            ide("IC", "2023.2")
+            ide("IC", "2023.3")
+            ide("IC", "2024.1")
+            ide("IC", "2024.2")
+            ide("IC", "2024.3")
+            ide("IC", "2025.1")
+            ide("IC", "2025.2")
+        }
     }
 }
 
@@ -68,8 +84,10 @@ val generateAlloyParser = tasks.register<GenerateParserTask>("generateAlloyParse
 
 tasks {
     withType<JavaCompile> {
-        sourceCompatibility = "21"
-        targetCompatibility = "21"
+        // 2023.x IDEs run on JVM 17, so we target 17. 2022.x runs on 17 too; 2024.2+ runs
+        // on 21 but is backwards-compatible with 17 bytecode.
+        sourceCompatibility = "17"
+        targetCompatibility = "17"
         dependsOn(generateAlloyLexer, generateAlloyParser)
     }
     withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
@@ -79,6 +97,6 @@ tasks {
 
 kotlin {
     compilerOptions {
-        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
     }
 }
