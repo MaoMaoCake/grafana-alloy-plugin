@@ -1,0 +1,4 @@
+prometheus.scrape "s" {
+    targets    = [{"__address__" = "localhost:9090"}]
+    forward_to = [prometheus.remote_write.rw.receiver]
+}

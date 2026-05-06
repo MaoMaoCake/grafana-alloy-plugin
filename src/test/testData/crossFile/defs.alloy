@@ -1,0 +1,5 @@
+prometheus.remote_write "rw" {
+    endpoint {
+        url = "http://mimir/api/v1/push"
+    }
+}

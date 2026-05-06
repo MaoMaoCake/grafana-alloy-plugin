@@ -1,0 +1,7 @@
+prometheus.remote_write "metrics_sink" {
+    endpoint { url = "http://mimir/api/v1/push" }
+}
+
+loki.write "logs_sink" {
+    endpoint { url = "http://loki/loki/api/v1/push" }
+}
