@@ -38,11 +38,14 @@ intellijPlatform {
     pluginConfiguration {
         ideaVersion {
             sinceBuild = "231"
-            // no untilBuild — upper bound set by the Marketplace per release.
+            // Keep this installable on newer IDE branches.
+            untilBuild = providers.provider { null }
         }
 
         changeNotes = """
-            Initial version
+            - Updated icon
+            - ide version compatibility changes 
+            - Add autocomplete from ENV file
         """.trimIndent()
     }
 
@@ -58,6 +61,7 @@ intellijPlatform {
             ide("IC", "2024.3")
             ide("IC", "2025.1")
             ide("IC", "2025.2")
+            ide("IC", "2026.1")
         }
     }
 }
