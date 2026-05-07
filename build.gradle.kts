@@ -9,7 +9,7 @@ plugins {
 }
 
 group = "com.maomaocake"
-version = "0.1.0"
+version = "0.2.0"
 
 repositories {
     mavenCentral()
@@ -43,9 +43,12 @@ intellijPlatform {
         }
 
         changeNotes = """
-            - Updated icon
-            - ide version compatibility changes 
-            - Add autocomplete from ENV file
+            Update for compatibility and improvements:
+
+            - Updated plugin icon.
+            - Added autocomplete from the ENV file.
+            - Adjusted IDE version compatibility.
+            - Updated test data and configuration files.
         """.trimIndent()
     }
 
