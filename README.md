@@ -1,5 +1,19 @@
 # Grafana Alloy — JetBrains Plugin
-<iframe width="245px" height="48px" src="https://plugins.jetbrains.com/embeddable/install/31630"></iframe>  
+
+## Installation
+
+Install directly from the JetBrains Marketplace:
+## Install
+
+[![Install from JetBrains Marketplace](https://img.shields.io/badge/Install%20from-JetBrains%20Marketplace-000000?logo=jetbrains&logoColor=white)](https://plugins.jetbrains.com/plugin/31630-grafana-alloy-configuration)
+
+[![Version](https://img.shields.io/jetbrains/plugin/v/31630-grafana-alloy-configuration?logo=jetbrains)](https://plugins.jetbrains.com/plugin/31630-grafana-alloy-configuration)
+[![Downloads](https://img.shields.io/jetbrains/plugin/d/31630-grafana-alloy-configuration?logo=jetbrains)](https://plugins.jetbrains.com/plugin/31630-grafana-alloy-configuration)
+[![Rating](https://img.shields.io/jetbrains/plugin/r/rating/31630-grafana-alloy-configuration?logo=jetbrains)](https://plugins.jetbrains.com/plugin/31630-grafana-alloy-configuration)
+
+Or search for **Grafana Alloy Configuration** inside your JetBrains IDE:
+
+`Settings → Plugins → Marketplace → Grafana Alloy Configuration`  
 
 Language support for [Grafana Alloy](https://grafana.com/docs/alloy/latest/)
 configuration files (`*.alloy`) in IntelliJ IDEA, GoLand, PyCharm, WebStorm,
