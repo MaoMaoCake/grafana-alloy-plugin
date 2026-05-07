@@ -1,4 +1,5 @@
 # Grafana Alloy — JetBrains Plugin
+<iframe width="245px" height="48px" src="https://plugins.jetbrains.com/embeddable/install/31630"></iframe>  
 
 Language support for [Grafana Alloy](https://grafana.com/docs/alloy/latest/)
 configuration files (`*.alloy`) in IntelliJ IDEA, GoLand, PyCharm, WebStorm,
