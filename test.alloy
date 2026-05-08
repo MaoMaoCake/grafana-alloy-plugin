@@ -134,7 +134,13 @@ declare "logs" {
 metrics "my_metrics" {}
 
 logs "my_logs" {}
+prometheus.exporter.self "name" {
 
+}
+prometheus.scrape "test" {
+    targets = prometheus.exporter.self.name.targets
+    forward_to = [prometheus.remote_write.test.receiver]
+}
 prometheus.remote_write "test" {
     endpoint {
         url = "${MIMIR_URL}"
