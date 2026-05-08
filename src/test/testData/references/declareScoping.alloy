@@ -1,0 +1,23 @@
+declare "pipeline" {
+    argument "receiver" {}
+
+    loki.source.file "tmpfiles" {
+        targets    = []
+        forward_to = [loki.write.lw_inner.receiver]
+    }
+
+    loki.write "lw_inner" {
+        endpoint { url = "http://inner/push" }
+    }
+}
+
+// Top-level loki.write outside the declare.
+loki.write "lw_outer" {
+    endpoint { url = "http://outer/push" }
+}
+
+// Top-level source that must resolve `lw_outer` but NOT see the declare's `lw_inner`.
+loki.source.file "toplevel" {
+    targets    = []
+    forward_to = [loki.write.lw_outer.receiver]
+}

@@ -1,0 +1,16 @@
+local.file_match "files_asdf87n89asdnf" {
+    path_targets = [
+        {__path__ = "/tmp/*.log"},
+    ]
+}
+
+loki.source.file "tmpfiles" {
+    targets    = local.file_match.files_asdf87n89asdnf.targets
+    forward_to = [loki.write.lw_asdf87n89asdnf.receiver]
+}
+
+loki.write "lw_asdf87n89asdnf" {
+    endpoint {
+        url = "http://loki/loki/api/v1/push"
+    }
+}
