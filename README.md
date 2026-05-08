@@ -137,6 +137,9 @@ Planned (see [`PLAN.md`](./PLAN.md)):
 
 ## License
 
-TBD — currently unreleased. The upstream struct-tag grammar
+Licensed under the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0).
+
+The upstream struct-tag grammar
 ([`catalog-generator/syntaxtags/syntaxtags.go`](./catalog-generator/syntaxtags/syntaxtags.go))
-is vendored verbatim from `grafana/alloy` under Apache-2.0.
+is vendored verbatim from [`grafana/alloy`](https://github.com/grafana/alloy),
+also under Apache-2.0.
