@@ -69,4 +69,18 @@ object AlloyCatalogLookup {
         val args: List<AlloyArg>,
         val blocks: List<AlloyBlock>,
     )
+
+    /**
+     * Canonical key for a port type. Maps the various spellings used in the catalog's `goType`
+     * column to the same identifier, so an arg's `[]X` and an export's `X` resolve to the
+     * same key. Callers typically strip a leading `[]` before normalizing.
+     */
+    fun normalizePortType(goType: String): String? = when (goType) {
+        "loki.LogsReceiver"    -> "LogsReceiver"
+        "storage.Appendable"   -> "MetricsReceiver"
+        "pyroscope.Appendable" -> "ProfilesReceiver"
+        "otelcol.Consumer"     -> "OtelcolConsumer"
+        "discovery.Target"     -> "Targets"
+        else                   -> null
+    }
 }

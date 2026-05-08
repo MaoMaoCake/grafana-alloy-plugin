@@ -1,8 +1,10 @@
 package com.maomaocake.grafanaalloyplugin
 
+import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.maomaocake.grafanaalloyplugin.envfile.AlloyEnvFile
 import com.maomaocake.grafanaalloyplugin.envfile.AlloyEnvFileSettings
+import java.io.File
 
 /**
  * End-to-end tests for the envfile `${…}` feature: parser, completion (inside / prefix /
@@ -130,5 +132,26 @@ class AlloyEnvFileTest : BasePlatformTestCase() {
         configureEnvFile()
         myFixture.configureByFile("annotatorMix.alloy")
         myFixture.checkHighlighting(/* checkWarnings = */ true, /* checkInfos = */ false, /* checkWeakWarnings = */ false)
+    }
+
+    // --- Path-traversal guard --------------------------------------------------
+
+    fun testEnvfileOutsideProjectIsRefused() {
+        // Create an envfile in the system temp dir — that's outside the project root
+        // regardless of where the test project lives, so the resolver must refuse it.
+        val outside = File.createTempFile("outside-", ".env").apply {
+            deleteOnExit()
+            writeText("HIDDEN_TOKEN=leak-this\n")
+        }
+        // Make sure VFS has seen the file so `findFileByPath` succeeds.
+        LocalFileSystem.getInstance().refreshAndFindFileByIoFile(outside)
+
+        AlloyEnvFileSettings.getInstance(project).envFilePath = outside.absolutePath
+
+        val entries = AlloyEnvFile.getInstance(project).entries()
+        assertTrue(
+            "envfile outside the project root must not leak keys; got $entries",
+            entries.isEmpty(),
+        )
     }
 }

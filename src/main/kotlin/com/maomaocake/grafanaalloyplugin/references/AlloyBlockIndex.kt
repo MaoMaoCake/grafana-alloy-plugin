@@ -23,12 +23,20 @@ import com.maomaocake.grafanaalloyplugin.psi.AlloyFile
  */
 object AlloyBlockIndex {
 
-    /** All [AlloyBlock]s reachable from [anchor], including blocks in [anchor] itself. */
+    /**
+     * All **top-level** [AlloyBlock]s reachable from [anchor] — the anchor's own top-level
+     * blocks plus every top-level block in sibling `*.alloy` files in the same directory.
+     *
+     * Nested blocks (e.g. `endpoint { … }` inside `prometheus.remote_write { … }`) are
+     * excluded so callers — reference resolvers, the annotator, port-type-aware completion —
+     * only see declarations that could actually be the target of a dotted reference like
+     * `prometheus.remote_write.rw.receiver`.
+     */
     fun visibleBlocks(anchor: PsiFile): Sequence<AlloyBlock> = sequence {
         val seen = HashSet<VirtualFile>()
         val anchorVf = anchor.virtualFile
         if (anchorVf != null) seen += anchorVf
-        yieldAll(PsiTreeUtil.findChildrenOfType(anchor, AlloyBlock::class.java))
+        yieldAll(topLevelBlocks(anchor))
 
         val dir = anchorVf?.parent ?: return@sequence
         val psiManager = PsiManager.getInstance(anchor.project)
@@ -38,7 +46,14 @@ object AlloyBlockIndex {
             if (child.fileType !== AlloyFileType) continue
             val psi = psiManager.findFile(child) as? AlloyFile ?: continue
             seen += child
-            yieldAll(PsiTreeUtil.findChildrenOfType(psi, AlloyBlock::class.java))
+            yieldAll(topLevelBlocks(psi))
         }
     }
+
+    private fun topLevelBlocks(file: PsiFile): List<AlloyBlock> =
+        PsiTreeUtil.findChildrenOfType(file, AlloyBlock::class.java).filter { isTopLevel(it) }
+
+    /** `file → statement → block`: the block's grandparent is the file. */
+    private fun isTopLevel(block: AlloyBlock): Boolean =
+        block.parent?.parent is com.intellij.psi.PsiFile
 }

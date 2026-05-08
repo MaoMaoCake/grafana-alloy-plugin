@@ -29,6 +29,11 @@ class AlloyEnvVarAnnotator : Annotator {
         var i = 0
         while (i < text.length - 1) {
             if (text[i] == '$' && text[i + 1] == '{') {
+                // `\${...}` is an escape — treat it as literal text, skip past the `$`.
+                if (i >= 1 && text[i - 1] == '\\') {
+                    i++
+                    continue
+                }
                 val close = text.indexOf('}', i + 2)
                 if (close < 0) break
                 val name = text.substring(i + 2, close)

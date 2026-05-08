@@ -2,6 +2,7 @@ package com.maomaocake.grafanaalloyplugin.docs
 
 import com.intellij.lang.documentation.AbstractDocumentationProvider
 import com.intellij.lang.documentation.DocumentationMarkup
+import com.intellij.openapi.util.text.StringUtil
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiTreeUtil
 import com.maomaocake.grafanaalloyplugin.catalog.AlloyArg
@@ -86,39 +87,43 @@ class AlloyDocumentationProvider : AbstractDocumentationProvider() {
 
         return buildString {
             append(DocumentationMarkup.DEFINITION_START)
-            append("<b>").append(component.name).append("</b>")
+            append("<b>").append(esc(component.name)).append("</b>")
             if (ctx.path.isNotEmpty()) append(" ").append(DocumentationMarkup.GRAYED_ELEMENT.addText(" > " + ctx.path.joinToString(" > ")))
             append(DocumentationMarkup.DEFINITION_END)
 
             append(DocumentationMarkup.CONTENT_START)
-            append("Alloy component in the <code>").append(component.namespace).append(".*</code> namespace.")
+            append("Alloy component in the <code>").append(esc(component.namespace)).append(".*</code> namespace.")
             append(DocumentationMarkup.CONTENT_END)
 
             append(DocumentationMarkup.SECTIONS_START)
             section("Stability", stabilityBadge(component))
             if (component.community) section("Community", "community component")
             component.accepted().takeIf { it.isNotEmpty() }?.let {
-                section("Accepts", it.joinToString(", "))
+                section("Accepts", esc(it.joinToString(", ")))
             }
             component.exported().takeIf { it.isNotEmpty() }?.let {
-                section("Exports", it.joinToString(", "))
+                section("Exports", esc(it.joinToString(", ")))
             }
             // If we are docuumenting a nested block rather than the component itself, show the
             // schema for that nested block only.
             if (ctx.path.isNotEmpty()) {
                 if (ctx.args.isNotEmpty()) section("Arguments", renderArgsTable(ctx.args))
                 if (ctx.blocks.isNotEmpty()) section("Blocks", ctx.blocks.joinToString(", ") {
-                    it.name + (if (it.repeated) "*" else "") + (if (it.optional) "?" else "")
+                    esc(it.name) + (if (it.repeated) "*" else "") + (if (it.optional) "?" else "")
                 })
             } else {
                 val rootArgs = component.argsList()
                 if (rootArgs.isNotEmpty()) section("Arguments", renderArgsTable(rootArgs))
                 val rootBlocks = component.blocksList()
                 if (rootBlocks.isNotEmpty()) section("Blocks", rootBlocks.joinToString(", ") {
-                    it.name + (if (it.repeated) "*" else "") + (if (it.optional) "?" else "")
+                    esc(it.name) + (if (it.repeated) "*" else "") + (if (it.optional) "?" else "")
                 })
             }
-            section("Docs", "<a href=\"${component.docsUrl}\">${component.docsUrl}</a>")
+            // docsUrl comes from the trusted catalog but we escape it anyway as
+            // defence-in-depth; the href must be a real URL so bare-quote injection
+            // would make the popup unclickable even if we didn't escape.
+            val safeUrl = esc(component.docsUrl)
+            section("Docs", "<a href=\"$safeUrl\">$safeUrl</a>")
             append(DocumentationMarkup.SECTIONS_END)
         }
     }
@@ -144,16 +149,16 @@ class AlloyDocumentationProvider : AbstractDocumentationProvider() {
 
         return buildString {
             append(DocumentationMarkup.DEFINITION_START)
-            append("<b>").append(arg.name).append("</b>: <code>").append(arg.goType).append("</code>")
+            append("<b>").append(esc(arg.name)).append("</b>: <code>").append(esc(arg.goType)).append("</code>")
             append(DocumentationMarkup.DEFINITION_END)
 
             append(DocumentationMarkup.CONTENT_START)
-            append("Argument of <code>").append(scope).append("</code>.")
+            append("Argument of <code>").append(esc(scope)).append("</code>.")
             append(DocumentationMarkup.CONTENT_END)
 
             append(DocumentationMarkup.SECTIONS_START)
             section("Required", if (arg.required) "yes" else "no")
-            section("Type", "<code>${arg.goType}</code>")
+            section("Type", "<code>${esc(arg.goType)}</code>")
             append(DocumentationMarkup.SECTIONS_END)
         }
     }
@@ -182,22 +187,23 @@ class AlloyDocumentationProvider : AbstractDocumentationProvider() {
 
         return buildString {
             append(DocumentationMarkup.DEFINITION_START)
-            append("<b>").append(chain.joinToString(".") { it.text }).append("</b>")
+            append("<b>").append(esc(chain.joinToString(".") { it.text })).append("</b>")
             append(DocumentationMarkup.DEFINITION_END)
 
             append(DocumentationMarkup.CONTENT_START)
-            append("Reference to <code>").append(targetCtx.component.name).append(" \"")
-                .append(AlloyPsiUtil.unquoteLabel(resolvedLabel) ?: "").append("\"</code>")
+            append("Reference to <code>").append(esc(targetCtx.component.name)).append(" \"")
+                .append(esc(AlloyPsiUtil.unquoteLabel(resolvedLabel) ?: "")).append("\"</code>")
             if (export != null) {
-                append(" · exports <code>").append(export.goType).append("</code>")
+                append(" · exports <code>").append(esc(export.goType)).append("</code>")
             }
             append(DocumentationMarkup.CONTENT_END)
 
             append(DocumentationMarkup.SECTIONS_START)
             targetCtx.component.exported().takeIf { it.isNotEmpty() }?.let {
-                section("Exports", it.joinToString(", "))
+                section("Exports", esc(it.joinToString(", ")))
             }
-            section("Docs", "<a href=\"${targetCtx.component.docsUrl}\">${targetCtx.component.docsUrl}</a>")
+            val safeUrl = esc(targetCtx.component.docsUrl)
+            section("Docs", "<a href=\"$safeUrl\">$safeUrl</a>")
             append(DocumentationMarkup.SECTIONS_END)
         }
     }
@@ -230,7 +236,7 @@ class AlloyDocumentationProvider : AbstractDocumentationProvider() {
         "generally-available" -> "GA"
         "public-preview"      -> "<b>public preview</b>"
         "experimental"        -> "<b>experimental</b>"
-        else                  -> c.stability
+        else                  -> esc(c.stability)
     }
 
     private fun stabilityBadgePlain(c: AlloyComponent): String = when (c.stability) {
@@ -242,9 +248,12 @@ class AlloyDocumentationProvider : AbstractDocumentationProvider() {
         if (args.isEmpty()) return "none"
         val rows = args.take(20).joinToString("<br>") { a ->
             val req = if (a.required) "<b>*</b> " else "&nbsp;&nbsp;"
-            "$req<code>${a.name}</code> : <code>${a.goType}</code>"
+            "$req<code>${esc(a.name)}</code> : <code>${esc(a.goType)}</code>"
         }
         val suffix = if (args.size > 20) "<br>…${args.size - 20} more" else ""
         return rows + suffix
     }
+
+    /** HTML-escape — defence in depth for everything we interpolate into the popup. */
+    private fun esc(s: String): String = StringUtil.escapeXmlEntities(s)
 }

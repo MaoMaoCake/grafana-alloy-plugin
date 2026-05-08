@@ -129,17 +129,20 @@ class AlloyCatalogAnnotator : Annotator {
         val enclosingBlock = PsiTreeUtil.getParentOfType(attr, AlloyBlock::class.java) ?: return
         val ctx = AlloyCatalogLookup.resolveBlock(enclosingBlock) ?: return
         val argSpec = ctx.args.firstOrNull { it.name == attrName } ?: return
-        val acceptedPort = normalizePortType(argSpec.goType.removePrefix("[]")) ?: return
+        val acceptedPort = AlloyCatalogLookup.normalizePortType(argSpec.goType.removePrefix("[]")) ?: return
 
         val referencedExport = lastChainSegment(oper) ?: return
         val matchingExport = targetComponent.exportsList().firstOrNull { it.name == referencedExport } ?: return
-        val providedPort = normalizePortType(matchingExport.goType.removePrefix("[]")) ?: return
+        val providedPort = AlloyCatalogLookup.normalizePortType(matchingExport.goType.removePrefix("[]")) ?: return
 
         if (providedPort != acceptedPort) {
+            // targetBlock.blockLabel is optional in general but non-null here: the resolved
+            // reference comes from `blockLabel.parent`, so the enclosing block has one.
+            val targetLabel = targetBlock.blockLabel?.let { AlloyPsiUtil.unquoteLabel(it) } ?: "?"
             holder.newAnnotation(
                 HighlightSeverity.WARNING,
                 "Port-type mismatch: `$attrName` expects ${humanPort(acceptedPort)}, " +
-                    "but `${targetComponent.name}.${AlloyPsiUtil.unquoteLabel(targetBlock.blockLabel!!)}.$referencedExport` exports ${humanPort(providedPort)}",
+                    "but `${targetComponent.name}.$targetLabel.$referencedExport` exports ${humanPort(providedPort)}",
             ).range(oper.textRange).create()
         }
     }
@@ -156,15 +159,5 @@ class AlloyCatalogAnnotator : Annotator {
         "OtelcolConsumer"  -> "OpenTelemetry otelcol.Consumer"
         "Targets"          -> "Targets"
         else               -> key
-    }
-
-    // Duplicated from completion contributor. Keep these two in sync until we consolidate.
-    private fun normalizePortType(goType: String): String? = when {
-        goType == "loki.LogsReceiver"    -> "LogsReceiver"
-        goType == "storage.Appendable"   -> "MetricsReceiver"
-        goType == "pyroscope.Appendable" -> "ProfilesReceiver"
-        goType == "otelcol.Consumer"     -> "OtelcolConsumer"
-        goType == "discovery.Target"     -> "Targets"
-        else                              -> null
     }
 }

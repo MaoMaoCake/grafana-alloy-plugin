@@ -1,11 +1,14 @@
 package com.maomaocake.grafanaalloyplugin.envfile
 
 import com.intellij.openapi.components.Service
+import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.VirtualFileManager
 import java.nio.charset.StandardCharsets
+import java.nio.file.Path
+import java.nio.file.Paths
 
 /**
  * Loads and caches the project's configured envfile. Invalidated when the file's VFS modstamp
@@ -36,6 +39,10 @@ class AlloyEnvFile(private val project: Project) {
         val path = AlloyEnvFileSettings.getInstance(project).envFilePath.trim()
         if (path.isEmpty()) return emptyMap()
         val vf = resolve(path) ?: return emptyMap()
+        if (vf.length > MAX_ENV_FILE_BYTES) {
+            LOG.warn("Envfile $path exceeds ${MAX_ENV_FILE_BYTES}B cap (${vf.length}B); ignoring to avoid OOM")
+            return emptyMap()
+        }
         val stamp = vf.modificationStamp
         val hit = cached
         if (hit != null && hit.stamp == stamp) return hit.entries
@@ -45,23 +52,60 @@ class AlloyEnvFile(private val project: Project) {
         return parsed
     }
 
+    /**
+     * Resolves the configured envfile path and verifies it lives under the project root.
+     * The envfile setting is **project-level**, which means a `.idea/grafanaAlloy.xml`
+     * checked into a hostile repo could otherwise point at e.g. `~/.aws/credentials` and
+     * leak the file's keys (and values, when show-values is on) via our completion popup.
+     * Restricting to `project.basePath` mirrors how IntelliJ's own project-file settings
+     * are scoped.
+     *
+     * `temp://` URLs are permitted so the unit-test fixture filesystem keeps working.
+     */
     private fun resolve(path: String): VirtualFile? {
         val lfs = LocalFileSystem.getInstance()
         val vfm = VirtualFileManager.getInstance()
+        val baseDir = project.basePath
 
         // Try LocalFileSystem first (normal case: user points at a path on disk).
-        lfs.findFileByPath(path)?.takeIf { !it.isDirectory }?.let { return it }
+        val direct = lfs.findFileByPath(path)?.takeIf { !it.isDirectory }
+        if (direct != null) return if (isUnderProject(direct, baseDir)) direct else refuseOutsideProject(direct)
 
-        // Fall back to URL-based lookup so in-memory test filesystems work; the fixture
-        // framework stores files under `temp://` which LocalFileSystem doesn't know about.
-        vfm.findFileByUrl(path)?.takeIf { !it.isDirectory }?.let { return it }
-        if (!path.contains("://")) {
-            vfm.findFileByUrl("file://$path")?.takeIf { !it.isDirectory }?.let { return it }
+        // `temp://` URLs (unit test fixture) and explicit `file://` URLs.
+        val urlHit = vfm.findFileByUrl(path)?.takeIf { !it.isDirectory }
+            ?: if (!path.contains("://")) vfm.findFileByUrl("file://$path")?.takeIf { !it.isDirectory } else null
+        if (urlHit != null) {
+            // `temp://` files used only in tests: always allow. Real-filesystem URLs get the
+            // under-project check.
+            val protocol = urlHit.fileSystem.protocol
+            if (protocol != "file" || isUnderProject(urlHit, baseDir)) return urlHit
+            return refuseOutsideProject(urlHit)
         }
 
-        // Last resort: treat path as project-relative.
-        val baseDir = project.basePath ?: return null
-        return lfs.findFileByPath("$baseDir/$path")?.takeIf { !it.isDirectory }
+        // Last resort: treat as project-relative.
+        if (baseDir == null) return null
+        val relative = lfs.findFileByPath("$baseDir/$path")?.takeIf { !it.isDirectory }
+        return relative?.takeIf { isUnderProject(it, baseDir) }
+    }
+
+    private fun isUnderProject(vf: VirtualFile, baseDir: String?): Boolean {
+        if (baseDir == null) return false
+        val basePath: Path = try {
+            Paths.get(baseDir).toAbsolutePath().normalize()
+        } catch (_: Throwable) {
+            return false
+        }
+        val filePath: Path = try {
+            Paths.get(vf.path).toAbsolutePath().normalize()
+        } catch (_: Throwable) {
+            return false
+        }
+        return filePath.startsWith(basePath)
+    }
+
+    private fun refuseOutsideProject(vf: VirtualFile): VirtualFile? {
+        LOG.warn("Refusing envfile ${vf.path}: outside project root; edit the path in Settings → Alloy")
+        return null
     }
 
     private fun parse(vf: VirtualFile): LinkedHashMap<String, String> {
@@ -94,6 +138,11 @@ class AlloyEnvFile(private val project: Project) {
     }
 
     companion object {
+        private val LOG = Logger.getInstance(AlloyEnvFile::class.java)
+
+        /** Refuse to parse envfiles larger than ~1 MiB — anything bigger isn't a real dotenv. */
+        private const val MAX_ENV_FILE_BYTES = 1L * 1024 * 1024
+
         fun getInstance(project: Project): AlloyEnvFile =
             project.getService(AlloyEnvFile::class.java)
     }

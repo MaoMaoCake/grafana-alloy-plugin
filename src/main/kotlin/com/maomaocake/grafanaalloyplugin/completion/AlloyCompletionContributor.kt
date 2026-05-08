@@ -16,6 +16,7 @@ import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.util.ProcessingContext
 import com.maomaocake.grafanaalloyplugin.AlloyLanguage
 import com.maomaocake.grafanaalloyplugin.catalog.AlloyBlock as CatalogBlock
+import com.maomaocake.grafanaalloyplugin.catalog.AlloyCatalogLookup
 import com.maomaocake.grafanaalloyplugin.catalog.AlloyCatalogService
 import com.maomaocake.grafanaalloyplugin.catalog.AlloyComponent
 import com.maomaocake.grafanaalloyplugin.psi.AlloyAttribute
@@ -89,7 +90,7 @@ private class AlloyCompletionProvider : CompletionProvider<CompletionParameters>
                     .withPresentableText(arg.name)
                     .withTypeText(arg.goType, true)
                     .withTailText(if (arg.required) "  — required" else null, true)
-                    .withInsertHandler { ctx, _ -> insertAttributeTemplate(ctx, arg.goType) }
+                    .withInsertHandler { ctx, _ -> insertAttributeTemplate(ctx, arg.name, arg.goType) }
             )
         }
         for (block in blocksHere) {
@@ -130,7 +131,7 @@ private class AlloyCompletionProvider : CompletionProvider<CompletionParameters>
                 // Some export types are the bare element type (e.g. `loki.LogsReceiver`) and
                 // others the slice form (e.g. `[]discovery.Target`); strip an optional `[]`
                 // prefix before normalizing so both shapes match correctly.
-                normalizePortType(ex.goType.removePrefix("[]")) == portTypeKey
+                AlloyCatalogLookup.normalizePortType(ex.goType.removePrefix("[]")) == portTypeKey
             }
             for (export in matchingExports) {
                 val refText = "$declaredName.$label.${export.name}"
@@ -237,7 +238,7 @@ private fun classify(parameters: CompletionParameters): Site? {
         val (argsHere, _) = resolvePath(component, chain.drop(1)) ?: return null
         val arg = argsHere.firstOrNull { it.name == attrName } ?: return null
         val elementType = arg.goType.removePrefix("[]").takeIf { it != arg.goType } ?: return null
-        val portKey = normalizePortType(elementType) ?: return null
+        val portKey = AlloyCatalogLookup.normalizePortType(elementType) ?: return null
         return Site.Reference(portKey)
     }
 
@@ -247,19 +248,8 @@ private fun classify(parameters: CompletionParameters): Site? {
     return Site.InsideBody(component = component, path = chain.drop(1))
 }
 
-/**
- * Canonical key for a port type — normalizes different spellings used in the catalog's
- * `goType` column to the same key. Exports expose the bare type (`loki.LogsReceiver`);
- * arg-list element types match after stripping `[]`.
- */
-internal fun normalizePortType(goType: String): String? = when {
-    goType == "loki.LogsReceiver"       -> "LogsReceiver"
-    goType == "storage.Appendable"      -> "MetricsReceiver"
-    goType == "pyroscope.Appendable"    -> "ProfilesReceiver"
-    goType == "otelcol.Consumer"        -> "OtelcolConsumer"
-    goType == "discovery.Target"        -> "Targets"
-    else                                -> null
-}
+// `normalizePortType` now lives in `AlloyCatalogLookup` — both the completion contributor and
+// the annotator share it, so a new port type doesn't need to be added in two places.
 
 /**
  * Walks [component]'s nested blocks along [path] and returns the (args, blocks) available at
@@ -436,13 +426,13 @@ private fun insertComponentTemplate(context: InsertionContext, item: LookupEleme
  *
  * Re-pops completion so the user can pick a reference / value right away.
  */
-private fun insertAttributeTemplate(context: InsertionContext, goType: String) {
+private fun insertAttributeTemplate(context: InsertionContext, name: String, goType: String) {
+    // `name` is the canonical attribute name from the catalog — *not* derived from the
+    // document. This matters when the user had a dotted typed prefix like `foo.url`: we
+    // replace the whole dotted range with `url = …`, not `foo.url = …`.
     val document = context.document
     val tailOffset = context.tailOffset
     val startOffset = dottedPrefixStart(document, context.startOffset)
-    // What the user already typed as an identifier — e.g. `url`.
-    val name = document.charsSequence.subSequence(startOffset, context.startOffset).toString()
-        .ifEmpty { context.document.charsSequence.subSequence(startOffset, tailOffset).toString() }
 
     // If there's already ` = value` after the caret, just replace the identifier and bail.
     val afterCaret = document.charsSequence.subSequence(
