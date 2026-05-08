@@ -35,4 +35,12 @@ class AlloyAnnotatorTest : BasePlatformTestCase() {
         myFixture.configureByFile("portTypeMismatch.alloy")
         myFixture.checkHighlighting(true, false, false)
     }
+
+    /** A `loki.write.X.receiver` reference with no matching `loki.write "X"` in the file is
+     * unresolved. Confirms the annotator warns when the declaration is actually missing
+     * (and proves the opposite case — see `AlloyReferenceTest.testLokiWritePipeline…`). */
+    fun testMissingLokiWriteDeclarationFlagged() {
+        myFixture.configureByFile("missingDeclaration.alloy")
+        myFixture.checkHighlighting(true, false, false)
+    }
 }

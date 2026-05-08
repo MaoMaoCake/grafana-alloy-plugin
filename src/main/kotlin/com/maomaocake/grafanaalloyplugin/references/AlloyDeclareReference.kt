@@ -40,6 +40,11 @@ class AlloyDeclareReference(
             // Skip if this *is* the `declare` keyword itself — its label is the target, not this.
             if (name == "declare") return null
 
+            // Declare lookup uses the raw (unscoped) block index — a `foo "inst"` invocation
+            // can reference a `declare "foo"` anywhere in the file/directory regardless of
+            // its own surrounding scope. (The declare-scope filter in visibleBlocksFrom is
+            // only about *component* references being confined to their module body; declare
+            // invocation resolution is separate.)
             val file = blockName.containingFile ?: return null
             for (block in AlloyBlockIndex.visibleBlocks(file)) {
                 if (block === blockName.parent) continue

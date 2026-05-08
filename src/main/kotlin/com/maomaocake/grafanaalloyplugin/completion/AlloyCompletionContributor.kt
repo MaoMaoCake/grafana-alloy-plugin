@@ -120,9 +120,17 @@ private class AlloyCompletionProvider : CompletionProvider<CompletionParameters>
         parameters: CompletionParameters,
         portTypeKey: String,
     ) {
-        val file = parameters.originalFile
         val catalog = AlloyCatalogService.getInstance().catalog
-        for (block in AlloyBlockIndex.visibleBlocks(file)) {
+        // Scope the reference offers to respect declare module boundaries: inside a
+        // `declare "foo" { … }` body, only blocks *in that module* can be referenced.
+        //
+        // Use the **original file** (not `parameters.position`) as the anchor for
+        // cross-directory lookup — the position lives in a completion-framework copy that
+        // has no `VirtualFile.parent`, which would defeat sibling-file resolution. The
+        // declare-scope check uses the original-file element at the same offset.
+        val originalAnchor = parameters.originalFile.findElementAt(parameters.offset)
+            ?: parameters.originalFile
+        for (block in AlloyBlockIndex.visibleBlocksFrom(originalAnchor)) {
             val label = block.blockLabel?.let { AlloyPsiUtil.unquoteLabel(it) } ?: continue
             val nameIdents = AlloyPsiUtil.blockNameIdents(block.blockName)
             val declaredName = nameIdents.joinToString(".")

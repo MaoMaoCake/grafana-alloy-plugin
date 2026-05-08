@@ -39,9 +39,8 @@ class AlloyBlockReference(
             val chain = AlloyPsiUtil.identChain(oper) ?: return null
             if (chain.size < 3) return null
             val chainTexts = chain.map { it.text }
-            val file = oper.containingFile ?: return null
 
-            for (block in AlloyBlockIndex.visibleBlocks(file)) {
+            for (block in AlloyBlockIndex.visibleBlocksFrom(oper)) {
                 val labelPsi = block.blockLabel ?: continue
                 val labelText = AlloyPsiUtil.unquoteLabel(labelPsi) ?: continue
                 val nameIdents = AlloyPsiUtil.blockNameIdents(block.blockName)
