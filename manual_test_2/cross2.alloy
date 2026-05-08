@@ -1,0 +1,10 @@
+//Cross reference across the same directory but not cross directory
+prometheus.scrape "test2" {
+    targets = prometheus.exporter.unix.cross2.targets
+    forward_to = [prometheus.remote_write.test2.receiver]
+}
+// this should error on both target and forward_to
+prometheus.scrape "test" {
+    targets = prometheus.exporter.unix.unix_exporter_asdf87n89asdnf.targets
+    forward_to = [prometheus.remote_write.test.receiver]
+}

@@ -1,0 +1,12 @@
+prometheus.exporter.unix "cross2" {
+
+}
+
+prometheus.scrape "err" {
+    // error because no targets and forward_to
+}
+
+
+prometheus.remote_write "test2" {
+
+}
