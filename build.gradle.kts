@@ -42,6 +42,13 @@ intellijPlatform {
             untilBuild = providers.provider { null }
         }
 
+        // Surfaces on the Marketplace listing: clickable links to the project and the author,
+        // license, support email. Keep in sync with `<vendor>` in plugin.xml.
+        vendor {
+            name = "maomaocake"
+            url = "https://github.com/maomaocake/grafana-alloy-plugin"
+        }
+
         changeNotes = """
             Update for compatibility and improvements:
 
