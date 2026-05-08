@@ -1,26 +1,29 @@
 # Grafana Alloy — JetBrains Plugin
 
-## Installation
-
-Install directly from the JetBrains Marketplace:
-## Install
-
-[![Install from JetBrains Marketplace](https://img.shields.io/badge/Install%20from-JetBrains%20Marketplace-000000?logo=jetbrains&logoColor=white)](https://plugins.jetbrains.com/plugin/31630-grafana-alloy-configuration)
-
-[![Version](https://img.shields.io/jetbrains/plugin/v/31630-grafana-alloy-configuration?logo=jetbrains)](https://plugins.jetbrains.com/plugin/31630-grafana-alloy-configuration)
-[![Downloads](https://img.shields.io/jetbrains/plugin/d/31630-grafana-alloy-configuration?logo=jetbrains)](https://plugins.jetbrains.com/plugin/31630-grafana-alloy-configuration)
-[![Rating](https://img.shields.io/jetbrains/plugin/r/rating/31630-grafana-alloy-configuration?logo=jetbrains)](https://plugins.jetbrains.com/plugin/31630-grafana-alloy-configuration)
-
-Or search for **Grafana Alloy Configuration** inside your JetBrains IDE:
-
-`Settings → Plugins → Marketplace → Grafana Alloy Configuration`  
-
 Language support for [Grafana Alloy](https://grafana.com/docs/alloy/latest/)
 configuration files (`*.alloy`) in IntelliJ IDEA, GoLand, PyCharm, WebStorm,
 and other IntelliJ-family IDEs.
 
+[![Install from JetBrains Marketplace](https://img.shields.io/badge/Install%20from-JetBrains%20Marketplace-000000?logo=jetbrains&logoColor=white)](https://plugins.jetbrains.com/plugin/31630-grafana-alloy-configuration)
+[![Version](https://img.shields.io/jetbrains/plugin/v/31630-grafana-alloy-configuration?logo=jetbrains)](https://plugins.jetbrains.com/plugin/31630-grafana-alloy-configuration)
+[![Downloads](https://img.shields.io/jetbrains/plugin/d/31630-grafana-alloy-configuration?logo=jetbrains)](https://plugins.jetbrains.com/plugin/31630-grafana-alloy-configuration)
+[![Rating](https://img.shields.io/jetbrains/plugin/r/rating/31630-grafana-alloy-configuration?logo=jetbrains)](https://plugins.jetbrains.com/plugin/31630-grafana-alloy-configuration)
+
 > This plugin is free and built in spare time. If it's useful to you, please
 > consider sponsoring — see [Sponsor](#sponsor) below.
+
+## Install
+
+From inside your JetBrains IDE:
+
+`Settings → Plugins → Marketplace → search Grafana Alloy Configuration`
+
+Or install from a zip (`Settings → Plugins → ⚙ → Install Plugin from Disk…`)
+using a release zip from [GitHub Releases](https://github.com/maomaocake/grafana-alloy-plugin/releases).
+
+**Compatibility**: verified against every minor IntelliJ Platform release
+from **2023.1 through 2026.1** (`IC`, `IU`, and sibling IDEs like GoLand,
+PyCharm, WebStorm, CLion, and others that share the platform).
 
 ## Features
 
@@ -28,65 +31,67 @@ and other IntelliJ-family IDEs.
   (`prometheus.*`, `loki.*`, `otelcol.*`, `discovery.*`, …). Nested blocks
   (`endpoint`, `basic_auth`, …) and attribute keys (`url`, `targets`,
   `forward_to`, …) each get their own color.
-- **Completion**:
+- **Completion**
   - Component names at file top level and inside `declare` module bodies.
   - Arguments and nested blocks inside a known component body (scope-aware —
     `loki.write` won't suggest `prometheus.*`).
-  - **Port-type-aware reference completion**: inside
-    `forward_to = [ … ]` only components exporting a compatible
-    `MetricsReceiver` / `LogsReceiver` / `otelcol.Consumer` / etc. show up.
-  - Value templates per attribute type: strings get `""`, lists get `[]`, etc.
-- **Navigation + refactoring**:
+  - **Port-type-aware reference completion**: inside `forward_to = [ … ]`
+    only components exporting a compatible `MetricsReceiver` /
+    `LogsReceiver` / `otelcol.Consumer` / `Targets` / `ProfilesReceiver`
+    show up.
+  - Value templates per attribute type: strings get `""`, lists get `[]`,
+    etc.
+  - Automatic `}` closing when accepting an env-var completion.
+- **Envfile templating**
+  - Point *Settings → Languages & Frameworks → Alloy* at a dotenv file.
+  - `${<caret>}` inside any Alloy string completes from the envfile's keys.
+  - Unknown `${VAR}` placeholders get a yellow warning.
+  - Optional "show values in completion" toggle (off by default so secret
+    values don't leak into the popup on a screenshare).
+  - Envfile is constrained to the project root and size-capped at 1 MiB for
+    safety.
+- **Navigation + refactoring**
   - Go-to-definition on dotted references
     (`prometheus.remote_write.rw.receiver` → the declaring block).
   - `declare "foo" { … }` ↔ `foo "instance" { … }` navigation for modules.
-  - Rename a block label and every reference updates (across files in the
-    same directory).
+  - Rename a block label and every reference updates — across files and
+    across `declare` module scopes.
   - Find Usages.
+- **Scoping**: references respect Alloy's `declare` module boundaries. A
+  reference inside a `declare "foo" { … }` body resolves only to blocks
+  inside that same module; top-level references skip module-internal blocks.
 - **Cross-file support**: all of the above works across `*.alloy` files in
   the same directory, matching `alloy validate <dir>`'s scoping rule.
-- **Inspections**:
+- **Inspections**
   - Duplicate labels, unresolved references, unknown components.
-  - Unknown or missing-required arguments (catalog-driven).
+  - Unknown / missing-required arguments (catalog-driven).
   - Port-type mismatches on references.
   - Stability warnings for public-preview / experimental components.
-- **Inline docs** (Ctrl/Cmd-Q) on component blocks, attribute keys and dotted
-  references: stability, Go type, port types, arg tables, docs URL.
+- **Inline docs** (Ctrl/Cmd-Q) on component blocks, attribute keys, and
+  dotted references: stability, Go type, port types, arg tables, docs URL.
+  All content is HTML-escaped to avoid popup injection from malicious
+  labels.
 - **Editor essentials**: brace matcher, folding, commenter (`//`, `/* */`),
   structure view grouped by component.
-
-## Installation
-
-Install from a zip (Marketplace listing is on its way):
-
-1. Download `grafana-alloy-plugin-<version>.zip` from
-   [build/distributions/](./build/distributions/) or a GitHub release.
-2. In your IDE: **Settings → Plugins → ⚙ → Install Plugin from Disk…** and
-   pick the zip.
-3. Restart when prompted.
-
-Compatibility verified against every minor IntelliJ Platform release from
-**2023.1 through 2025.2** (`IC`, `IU`, and sibling IDEs like GoLand,
-PyCharm, WebStorm that share the platform).
 
 ## The component catalog
 
 The plugin bundles a JSON catalog of every registered Alloy component —
 name, namespace, stability, args, nested blocks, exports, and accepted /
-exported port types. This is what powers completion, inspections and inline
-docs, and it's why all of that works offline with no network calls.
+exported port types. This powers completion, inspections and inline docs,
+and it's why all of that works offline with no network calls.
 
-The catalog is generated from the upstream Alloy Go source (not scraped from
-docs — Alloy's argument tables are hand-written), pinned to a tagged
-release. See [`catalog-generator/`](./catalog-generator/) for the generator;
-regenerate on every Alloy version bump.
+The catalog is generated from the upstream Alloy Go source (not scraped
+from docs — Alloy's argument tables are hand-written), pinned to a tagged
+release. See [`catalog-generator/`](./catalog-generator/) for the
+generator; regenerate on every Alloy version bump.
 
 ## Developing
 
 Use the Gradle wrapper:
 
 ```bash
-./gradlew test -x buildSearchableOptions          # JUnit suite (40 tests)
+./gradlew test -x buildSearchableOptions          # JUnit suite
 ./gradlew runIde -x buildSearchableOptions        # sandbox IDE with the plugin
 ./gradlew verifyPlugin -x buildSearchableOptions  # Plugin Verifier vs all target IDEs
 ./gradlew buildPlugin -x buildSearchableOptions   # build the distributable zip
@@ -97,8 +102,8 @@ that collides with any IDE you already have open.
 
 See [`CLAUDE.md`](./CLAUDE.md) for build/toolchain details (Kotlin + JVM
 target, Grammar-Kit wiring, etc.) and [`PLAN.md`](./PLAN.md) for the
-longer-term roadmap (external `alloy validate` shellout, embedded Alloy web
-UI tool window, …).
+longer-term roadmap (external `alloy validate` shellout, embedded Alloy
+web UI tool window, multi-version catalog support, …).
 
 ## Sponsor
 
@@ -112,17 +117,23 @@ Alloy Plugin**.
 
 ## Status and scope
 
-Shipped as of v0.1.0: parser, highlighting, completion, inspections, inline
-docs, cross-file references, IDE essentials. Planned (see `PLAN.md`):
+Shipped so far: parser, per-namespace highlighting, completion (including
+port-type- and declare-aware reference completion), inspections, inline
+docs, cross-file references, envfile templating, and IDE essentials.
+
+Planned (see [`PLAN.md`](./PLAN.md)):
 
 - **External validator**: on-demand / on-save `alloy validate` shellout,
-  gated behind OS detection (macOS/Linux only — Windows binaries don't ship
-  the subcommand) and a configurable binary path, with stderr parsed into
-  editor annotations.
+  gated behind OS detection (macOS/Linux only — Windows binaries don't
+  ship the subcommand) and a configurable binary path, with stderr parsed
+  into editor annotations.
 - **Embedded Alloy web UI**: a tool window backed by `JBCefBrowser`
   pointed at `http://localhost:12345`.
 - **Richer inline docs**: per-argument prose descriptions parsed from the
   upstream `//` Go comments.
+- **Multi-version catalog**: project-level setting to pick which Alloy
+  version's schema drives completion and inspections, so configs targeted
+  at older fleets don't false-positive on newer-only arguments.
 
 ## License
 
