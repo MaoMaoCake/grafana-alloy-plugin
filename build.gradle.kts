@@ -53,12 +53,33 @@ intellijPlatform {
         }
 
         changeNotes = """
-            Update for compatibility and improvements:
-
-            - Updated plugin icon.
-            - Added autocomplete from the ENV file.
-            - Adjusted IDE version compatibility.
-            - Updated test data and configuration files.
+            <h3>0.3.0</h3>
+            <p><strong>Run, validate, and edit Alloy where it actually runs.</strong></p>
+            <ul>
+              <li><b>External validator</b> — right-click an <code>.alloy</code> file or
+                folder → <i>Validate</i>. Runs <code>alloy validate</code>, opens an
+                <i>Alloy Validate</i> tool window with hyperlinked diagnostics that jump
+                straight to the offending line. Optional on-idle trigger for live
+                squiggles. macOS / Linux only (the subcommand doesn't ship in Windows
+                binaries).</li>
+              <li><b>Run with Alloy</b> — right-click an <code>.alloy</code> file or
+                folder → <i>Run with Alloy</i>. Spawns <code>alloy run</code> with an
+                auto-picked free port (default 12345), streams stdout / stderr to the
+                Run tool window, and embeds the Alloy UI in a dedicated tool window
+                backed by JCEF — Back / Forward / Reload / Home buttons included.
+                Per-run storage in a tempdir, cleaned up on stop, so
+                <code>data-alloy/</code> never lands next to your config.</li>
+              <li><b>Kubernetes ConfigMap support</b> — full editor experience
+                (highlighting, completion, references, inspections, Cmd-Q docs) now
+                works inside YAML block scalars and multi-line quoted scalars under keys
+                named <code>config.alloy</code> or <code>*.alloy</code>. Single-line
+                quoted scalars (pasted-snippet shape) are auto-converted to <code>|</code>
+                block scalars on file open, so the experience is live the moment you
+                open a <code>kubectl get cm</code> dump. Configurable; read-only files
+                are skipped.</li>
+            </ul>
+            <p>See <a href="https://github.com/maomaocake/grafana-alloy-plugin/blob/main/CHANGELOG.md">CHANGELOG.md</a>
+            for the full list.</p>
         """.trimIndent()
     }
 

@@ -156,9 +156,8 @@ Always pass `-x buildSearchableOptions` — that task spawns a sandbox IDE
 that collides with any IDE you already have open.
 
 See [`CLAUDE.md`](./CLAUDE.md) for build/toolchain details (Kotlin + JVM
-target, Grammar-Kit wiring, etc.) and [`PLAN.md`](./PLAN.md) for the
-longer-term roadmap (external `alloy validate` shellout, embedded Alloy
-web UI tool window, multi-version catalog support, …).
+target, Grammar-Kit wiring, etc.), [`CHANGELOG.md`](./CHANGELOG.md) for
+release notes, and [`PLAN.md`](./PLAN.md) for the longer-term roadmap.
 
 ## Sponsor
 
