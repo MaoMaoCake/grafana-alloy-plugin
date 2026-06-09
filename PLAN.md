@@ -173,7 +173,41 @@ When M4 lands, the version dropdown and the `alloy` binary path live in the same
 - Downloading catalogs on demand. All versions ship inside the plugin jar; no network calls at runtime. If a new Alloy release is needed we ship a plugin update.
 - Per-file version overrides. Project-level granularity is enough — nobody targets two Alloy versions in the same directory.
 
-## 9. Milestones
+## 9. Kubernetes ConfigMap integration
+
+In production, Alloy configs almost always ship inside a Kubernetes `ConfigMap` — a YAML document with the Alloy source as a multi-line string under `data:`. Today the plugin only activates on `*.alloy` files, so the moment a user opens the YAML where the config actually lives, every feature (highlighting, completion, references, inspections, inline docs) disappears. This is the highest-impact gap we have.
+
+**Phase 1 — language injection (the bulk of the win)**
+
+- Implement a `LanguageInjectionContributor` (or a `MultiHostInjector` for the legacy API) that injects `AlloyLanguage` into YAML scalar values. Activation criteria:
+  - Containing document declares `kind: ConfigMap` *or* the parent key matches a configurable allow-list of names (default: `config.alloy`, `alloy.alloy`, `config.river`, plus any key ending in `.alloy`).
+  - The value is a block scalar (`|` / `|-` / `|+` / `>`); ignore single-line scalars.
+- Once injection works, the existing parser, completion, references, inspections, and docs should "just work" inside the injected fragment because IntelliJ's injection host machinery routes carets through to the injected PSI for free.
+- **Caveats to nail down before shipping**:
+  - YAML block-scalar indent is stripped before the injected language sees it; line/column reporting in the validator (§6) must round-trip back through the host document.
+  - Cross-file references break inside ConfigMaps (no sibling files), so the resolver should fall back to `(YAML host document) + (other ConfigMaps in the same project)` rather than using the directory-scoped index.
+  - Envfile templating still applies — `${VAR}` placeholders should highlight inside the injected fragment the same way they do in `*.alloy` files.
+- **Settings**: a project-level toggle ("Enable Alloy injection in YAML ConfigMaps") plus the editable allow-list of key names. Default on.
+- **Dependency**: add `<depends optional="true" config-file="alloy-yaml.xml">com.intellij.modules.yaml</depends>` so the injector only loads in IDEs that bundle YAML support (every modern JetBrains IDE does, but optional-depends keeps us robust).
+- Size: ~half day for the injector + tests. Most existing tests should pass unchanged because PSI is shared.
+
+**Phase 2 — Services tool window integration (later)**
+
+PyCharm/IntelliJ Ultimate ship a Kubernetes plugin that surfaces clusters in the *Services* tool window. The eventual goal is to let users:
+
+- Right-click a `ConfigMap` in the Services tree → *Edit Alloy config* → opens the embedded YAML scalar in a synthetic editor with full Alloy support.
+- Run `alloy validate` (§6) against the live ConfigMap content without first writing it to disk — the validator runner takes a `String` payload, writes it to a tempdir, and runs against that.
+- Optional: a "Push back to cluster" action that diffs the edited content against the live ConfigMap before applying via `kubectl apply -f -`.
+
+**Open questions for Phase 2** (resolve when we get there, not now):
+
+- Does the Kubernetes plugin expose stable extension points for adding context-menu actions on `ConfigMap` nodes, or do we need to subscribe to the Services tree and inject actions ourselves?
+- Auth/cluster context comes from the Kubernetes plugin; we should **never** embed our own kubeconfig handling.
+- The Kubernetes plugin is bundled in IDEA Ultimate / PyCharm Pro / GoLand but not Community editions. Phase 2 is opt-in for Ultimate users; the injection in Phase 1 covers everyone else.
+
+Phase 1 is straightforward and unblocks the majority of real-world use. Phase 2 is the "delight" tier — defer until Phase 1 ships and we have signal on how often users actually edit ConfigMaps directly vs through Helm/Kustomize templates (which we'd want to handle separately, see *Risks*).
+
+## 10. Milestones
 
 Each milestone is independently mergeable and leaves the plugin usable.
 
@@ -220,7 +254,7 @@ Each milestone is independently mergeable and leaves the plugin usable.
 - Settings page with an Alloy-version dropdown; optional auto-detect from the `alloy` binary (depends on M4).
 - On settings change, refresh the DaemonCodeAnalyzer so inspections re-run against the new catalog.
 
-**M7 — Free-tier quality-of-life (§10)**
+**M7 — Free-tier quality-of-life (§11)**
 
 - No-destination + dead-config warnings (catalog + directory index driven).
 - Autocomplete pre-fills required fields on block-template insertion.
@@ -228,14 +262,22 @@ Each milestone is independently mergeable and leaves the plugin usable.
 - Breadcrumb bar (`BreadcrumbsProvider`).
 - TODO tool-window integration (`IndexPatternBuilder`).
 
-**M8 — Pro tier (gated, §10)**
+**M8 — Pro tier (gated, §11)**
 
 - Secrets check using catalog's `alloytypes.Secret` type information.
 - Deprecated-argument warning (depends on M6 multi-version catalogs).
 - `alloy run` Run Configuration with streaming output + embedded localhost viewer (composes M4 validator plumbing + §7 `JBCefBrowser`).
 - Settings-level feature flag for the paid tier (license-key mechanism TBD based on post-v0.1.0 monetization decision).
 
-## 10. Backlog — post-M5 features
+**M9 — Kubernetes ConfigMap injection (§9)**
+
+- `LanguageInjectionContributor` injecting `AlloyLanguage` into YAML block scalars under known keys / `kind: ConfigMap` documents.
+- Optional dependency on `com.intellij.modules.yaml`; injection silently disabled in IDEs without YAML support.
+- Project-level toggle + editable allow-list of YAML keys.
+- Validator (M4) host-document line/column round-trip so `alloy validate` errors land on the right line of the YAML, not the stripped fragment.
+- Phase 2 (later, separate milestone): Services-tool-window integration — right-click `ConfigMap` → *Edit Alloy config* → validate live → push back. Requires the bundled Kubernetes plugin and is opt-in for IDEA Ultimate / PyCharm Pro / GoLand.
+
+## 11. Backlog — post-M5 features
 
 Selected ideas sized and flagged for eventual work. Ordering here is rough priority; items are grouped with the milestone that would own them.
 
@@ -258,7 +300,7 @@ Selected ideas sized and flagged for eventual work. Ordering here is rough prior
 
 The free/pro split here is deliberate: items 1–8 add polish everyone will use; items 9–11 are the ones platform engineers pay for (correctness + running). Revisit after v0.1.0 install data tells us whether a paid tier is worth pursuing at all.
 
-## 11. Testing approach
+## 12. Testing approach
 
 - **Lexer/parser**: `LexerTestCase`, `ParsingTestCase` with fixture files under `src/test/testData/parser/`.
 - **Completion**: `BasePlatformTestCase` + `myFixture.completeBasic()`; assert the full set of lookup strings for representative contexts.
@@ -266,7 +308,7 @@ The free/pro split here is deliberate: items 1–8 add polish everyone will use;
 - **Catalog loader**: plain JVM unit test over a checked-in miniature JSON.
 - **External validator**: unit test the stderr parser against recorded fixture strings. Integration test gated behind an env var (`ALLOY_BIN`), skipped in CI when unset.
 
-## 12. Open questions
+## 13. Open questions
 
 These need to be resolved before or during the affected milestone, not up front:
 
@@ -277,7 +319,7 @@ These need to be resolved before or during the affected milestone, not up front:
 - **Labels scope**: confirm whether labels are unique per component name, per namespace, or globally. Affects duplicate-label inspection.
 - **Multi-file configs**: `alloy validate` accepts a directory. Decide whether in-IDE resolution should cross files in the same directory for reference checks (probably yes, but needs a caching story).
 
-## 13. Risks
+## 14. Risks
 
 - **Catalog staleness.** Every Alloy release can add/rename components. Mitigation: regenerate catalog in a scheduled CI job, ship a new plugin version when upstream releases, degrade gracefully (unknown components become warnings, not errors).
 - **Grammar drift.** Alloy's syntax has been stable but isn't frozen. Mitigation: keep the parser permissive around expressions; lean on `alloy validate` as the source of truth for deep checks.

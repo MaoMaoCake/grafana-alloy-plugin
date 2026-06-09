@@ -32,6 +32,14 @@
             description="Open the sponsor page in your browser">
             <add-to-group group-id="HelpMenu" anchor="last"/>
         </action>
+
+        <action
+            id="GrafanaAlloy.ValidateAction"
+            class="com.maomaocake.grafanaalloyplugin.validator.AlloyValidateAction"
+            text="Validate Alloy Config"
+            description="Run `alloy validate` against the directory containing the focused Alloy file">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
     </actions>
 
     <extensions defaultExtensionNs="com.intellij">
@@ -80,6 +88,21 @@
             instance="com.maomaocake.grafanaalloyplugin.envfile.AlloyEnvFileConfigurable"
             id="com.maomaocake.grafanaalloyplugin.settings.envfile"
             displayName="Alloy"/>
+
+        <projectConfigurable
+            parentId="com.maomaocake.grafanaalloyplugin.settings.envfile"
+            instance="com.maomaocake.grafanaalloyplugin.validator.AlloyValidatorConfigurable"
+            id="com.maomaocake.grafanaalloyplugin.settings.validator"
+            displayName="Validate"/>
+
+        <externalAnnotator
+            language="Alloy"
+            implementationClass="com.maomaocake.grafanaalloyplugin.validator.AlloyValidatorExternalAnnotator"/>
+
+        <notificationGroup
+            id="Grafana Alloy"
+            displayType="BALLOON"
+            isLogByDefault="true"/>
 
         <lang.documentationProvider
             language="Alloy"
