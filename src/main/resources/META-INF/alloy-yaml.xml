@@ -1,0 +1,11 @@
+<idea-plugin>
+    <!--
+      Loaded only when `org.jetbrains.plugins.yaml` is present at runtime. Holds every
+      extension that touches YAML PSI so the main plugin keeps loading in IDEs that ship
+      without YAML support (rare, but possible in stripped-down or custom builds).
+    -->
+    <extensions defaultExtensionNs="com.intellij">
+        <multiHostInjector
+            implementation="com.maomaocake.grafanaalloyplugin.injection.AlloyYamlInjector"/>
+    </extensions>
+</idea-plugin>

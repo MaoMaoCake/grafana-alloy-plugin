@@ -23,6 +23,7 @@
     ]]></description>
 
     <depends>com.intellij.modules.platform</depends>
+    <depends optional="true" config-file="alloy-yaml.xml">org.jetbrains.plugins.yaml</depends>
 
     <actions>
         <action

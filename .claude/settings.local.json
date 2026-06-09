@@ -4,7 +4,9 @@
       "WebFetch(domain:grafana.com)",
       "Read(//private/tmp/alloy-scout/alloy/internal/tools/docs_generator/**)",
       "Read(//private/tmp/alloy-scout/alloy/**)",
-      "Bash(./gradlew test *)"
+      "Bash(./gradlew test *)",
+      "Bash(./gradlew compileKotlin -x buildSearchableOptions)",
+      "Bash(./gradlew compileKotlin -x buildSearchableOptions --info)"
     ]
   }
 }

@@ -1,0 +1,24 @@
+kind: ConfigMap
+metadata:
+  name: alloy
+data:
+  config.alloy: |
+    prometheus.exporter.unix "unix" {
+    }
+    prometheus.scrape "err" {
+      targets = prometheus.exporter.unix.unix.targets
+      forward_to = [prometheus.remote_write.test3.receiver]
+    }  
+    prometheus.remote_write "test3" {
+    
+    }
+  errorkey:
+    prometheus.exporter.unix "unix" {
+    }
+    prometheus.scrape "err" {
+      targets = prometheus.exporter.unix.unix.targets
+      forward_to = [prometheus.remote_write.test3.receiver]
+    }
+    prometheus.remote_write "test3" {
+
+    }

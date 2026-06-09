@@ -24,9 +24,12 @@ dependencies {
         intellijIdea("2025.2.4")
         testFramework(org.jetbrains.intellij.platform.gradle.TestFrameworkType.Platform)
 
-
-        // Add plugin dependencies for compilation here, example:
-        // bundledPlugin("com.intellij.java")
+        // YAML support for the Alloy-in-ConfigMap injector. JSON is pulled in because the
+        // platform's YAML plugin transitively depends on `intellij.json` modules at runtime;
+        // without it, `Plugin 'YAML' has module dependency 'intellij.json' which cannot be
+        // loaded or missing` and our optional dep on YAML never resolves.
+        bundledPlugin("org.jetbrains.plugins.yaml")
+        bundledPlugin("com.intellij.modules.json")
     }
 
     // ParsingTestCase extends JUnit 3's TestCase; keep JUnit 3 on the test classpath.

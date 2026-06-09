@@ -1,0 +1,3 @@
+data:
+  config.yaml: |
+    prometheus.<caret>
