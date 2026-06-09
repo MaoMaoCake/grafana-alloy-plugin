@@ -1,0 +1,13 @@
+prometheus.exporter.unix "unix" {
+
+}
+
+prometheus.scrape "err" {
+    targets = prometheus.exporter.unix.unix.targets
+    forward_to = [prometheus.remote_write.test3.receiver]
+}
+
+
+prometheus.remote_write "test3" {
+
+}
