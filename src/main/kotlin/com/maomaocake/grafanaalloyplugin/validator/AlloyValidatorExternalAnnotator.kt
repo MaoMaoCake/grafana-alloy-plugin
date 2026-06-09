@@ -24,7 +24,7 @@ import java.io.File
 class AlloyValidatorExternalAnnotator :
     ExternalAnnotator<AlloyValidatorExternalAnnotator.Input, AlloyValidatorExternalAnnotator.Result>() {
 
-    data class Input(val file: PsiFile, val targetDir: File)
+    data class Input(val file: PsiFile, val target: File)
     data class Result(val diagnostics: List<AlloyValidatorOutputParser.Diagnostic>, val rawStderr: String)
 
     override fun collectInformation(file: PsiFile, editor: Editor, hasErrors: Boolean): Input? {
@@ -34,12 +34,11 @@ class AlloyValidatorExternalAnnotator :
         if (settings.triggerMode != AlloyValidatorSettings.TriggerMode.OnIdle) return null
 
         val vf = file.virtualFile ?: return null
-        val parent = vf.parent ?: return null
-        return Input(file, File(parent.path))
+        return Input(file, File(vf.path))
     }
 
     override fun doAnnotate(collected: Input): Result? {
-        val run = AlloyValidatorRunner.run(collected.file.project, collected.targetDir)
+        val run = AlloyValidatorRunner.run(collected.file.project, collected.target)
         if (run.crashedBeforeRunning) return Result(emptyList(), run.failureReason ?: "")
         return Result(AlloyValidatorOutputParser.parse(run.stderr), run.stderr)
     }

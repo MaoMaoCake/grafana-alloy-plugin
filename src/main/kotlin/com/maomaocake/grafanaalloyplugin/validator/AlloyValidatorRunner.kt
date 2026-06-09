@@ -36,12 +36,13 @@ object AlloyValidatorRunner {
     }
 
     /**
-     * Runs `alloy validate <targetDir>`. Returns the captured output; does not throw.
-     * [timeoutMs] caps wall-clock time so a misbehaving binary can't hang the IDE.
+     * Runs `alloy validate <target>` where [target] may be either a single `.alloy` file or
+     * a directory of them. Returns the captured output; does not throw. [timeoutMs] caps
+     * wall-clock time so a misbehaving binary can't hang the IDE.
      */
     fun run(
         project: Project,
-        targetDir: File,
+        target: File,
         timeoutMs: Long = DEFAULT_TIMEOUT_MS,
     ): RunResult {
         if (!AlloyValidatorAvailability.isSupportedOs) {
@@ -60,8 +61,8 @@ object AlloyValidatorRunner {
             if (settings.communityComponentsEnabled) {
                 addParameter("--feature.community-components.enabled")
             }
-            addParameter(targetDir.absolutePath)
-            workDirectory = targetDir
+            addParameter(target.absolutePath)
+            workDirectory = if (target.isDirectory) target else target.parentFile
         }
 
         return try {

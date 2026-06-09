@@ -37,8 +37,11 @@
             id="GrafanaAlloy.ValidateAction"
             class="com.maomaocake.grafanaalloyplugin.validator.AlloyValidateAction"
             text="Validate Alloy Config"
-            description="Run `alloy validate` against the directory containing the focused Alloy file">
+            description="Run `alloy validate` against the selected file or directory">
             <add-to-group group-id="ToolsMenu" anchor="last"/>
+            <add-to-group group-id="ProjectViewPopupMenu" anchor="last"/>
+            <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+            <add-to-group group-id="EditorTabPopupMenu" anchor="last"/>
         </action>
     </actions>
 
