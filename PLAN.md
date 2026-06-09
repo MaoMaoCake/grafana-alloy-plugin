@@ -277,6 +277,15 @@ Each milestone is independently mergeable and leaves the plugin usable.
 - Validator (M4) host-document line/column round-trip so `alloy validate` errors land on the right line of the YAML, not the stripped fragment.
 - Phase 2 (later, separate milestone): Services-tool-window integration — right-click `ConfigMap` → *Edit Alloy config* → validate live → push back. Requires the bundled Kubernetes plugin and is opt-in for IDEA Ultimate / PyCharm Pro / GoLand.
 
+**M10 — Remote config viewer (§15)**
+
+- Profile model + Settings page; secrets in `PasswordSafe`.
+- `AlloyRemoteConfigService` doing single-shot `GetConfig` over connect-RPC HTTP+JSON, with hash-based `not_modified` short-circuit.
+- *Open Remote Config…* action that materialises the response into a per-profile `LightVirtualFile` of `AlloyFileType`, opened read-only with an `EditorNotificationProvider` banner.
+- Project-scoped polling on `Alarm`, auto-paused when the editor closes.
+- Click-to-jump rides M1–M3; no language-layer changes required.
+- Punt multi-file responses, status reporting back to the server, and poll-diff history to follow-ups.
+
 ## 11. Backlog — post-M5 features
 
 Selected ideas sized and flagged for eventual work. Ordering here is rough priority; items are grouped with the milestone that would own them.
@@ -325,3 +334,95 @@ These need to be resolved before or during the affected milestone, not up front:
 - **Grammar drift.** Alloy's syntax has been stable but isn't frozen. Mitigation: keep the parser permissive around expressions; lean on `alloy validate` as the source of truth for deep checks.
 - **Binary-shellout UX.** Users without `alloy` installed will hit the feature and get confused. Mitigation: disable cleanly, surface one actionable message pointing at the install docs, never pop modal errors.
 - **JCEF availability.** Some JetBrains runtimes ship without JCEF (custom IDE builds, certain Linux distributions). Mitigation: feature-detect via `JBCefApp.isSupported()`; when unavailable, hide the embedded view and degrade to an "Open Alloy UI in browser" action.
+
+## 15. Remote config viewer (M10)
+
+A common operational task is "what config does my fleet member *actually* have right now?" — answered today by `curl`-ing a remote config server and reading raw output in a terminal. Bringing the result into the IDE means users get the same parser, completion, references, and inspections from M1–M3 against fetched configs, including click-through navigation when debugging cross-component wiring. The contract is the upstream proto at https://github.com/grafana/alloy-remote-config: `collector.v1.CollectorService.GetConfig(GetConfigRequest) → GetConfigResponse`, served via [connect-go](https://connectrpc.com/) which exposes plain HTTP+JSON in addition to gRPC.
+
+**Goals**
+
+- Fetch the config a remote-config server would hand to a given collector ID, render it in a normal Alloy editor, and let the existing language features work on it as if it were a local file.
+- Optional polling so users can leave the editor open and watch the rendered config change as the server's view of the fleet changes.
+- Multiple named profiles (a user typically has dev/staging/prod servers and a handful of collector IDs they investigate often).
+
+**Non-goals (v1)**
+
+- Editing and pushing config back. The viewer is read-only; modifying remote config goes through the server's own UI / API.
+- Proper RPC client. We hit the connect HTTP+JSON endpoint directly with `HttpClient`, not the generated Java client — connect-go is Go-only and we don't want to vendor a generated Java connect runtime for one method.
+- Streaming / server-push. Polling is good enough for an interactive viewer.
+- Multi-file `AgentConfigMap` responses. The proto allows a `map<string, AgentConfigFile>` payload (one config per filename) but in practice Alloy collectors take a single file. Read `GetConfigResponse.content` (top-level scalar) first; if a future server hands us a map we surface a "multi-file response not yet supported" notice and fall back to concatenating with separator comments. Cross-file references will be wrong in that fallback — accept it for v1.
+
+**Wire contract** (verbatim from the upstream proto so we don't drift):
+
+- `CollectorService.GetConfig` over connect-RPC. HTTP+JSON URL: `POST {base}/collector.v1.CollectorService/GetConfig`, content-type `application/json`.
+- `GetConfigRequest`: `{ id: string, local_attributes?: map<string,string>, hash?: string, remote_config_status?: …, effective_config?: … }`. We send `id` and `hash`; we do **not** send `remote_config_status` or `effective_config` because we're not a real collector and shouldn't be reporting back into the server's effective-config view.
+- `GetConfigResponse`: `{ content: string, hash: string, not_modified: bool }`. When `not_modified == true` we keep the prior body and just update the "last polled at" timestamp.
+- `local_attributes` is a free-form `map<string,string>` — many servers route configs by these (e.g. `cluster=prod, region=us-east-1`). Expose them as editable key/value pairs in the profile.
+
+**Profile model** (project-level, `PersistentStateComponent`):
+
+```
+RemoteConfigProfile {
+  id: UUID,                     // stable key for the LightVirtualFile + storage
+  name: String,                 // display name in the action menu
+  baseUrl: String,              // e.g. https://alloy-config.example.com
+  collectorId: String,
+  localAttributes: Map<String, String>,
+  authMode: NONE | BEARER | BASIC,
+  // secrets stored in PasswordSafe under "alloy-remote-config:{id}", NOT in the state component
+  pollIntervalSeconds: Int?,    // null = manual refresh only
+  insecureSkipVerify: Boolean,  // for self-signed dev servers; defaults false
+}
+```
+
+Secrets (bearer tokens, basic-auth passwords) live in `PasswordSafe` keyed by profile UUID — never in the persisted state file. `RemoteConfigProfileService` is `@Service(Level.PROJECT)` so different projects can target different fleets, mirroring §8.
+
+**Settings UI** (under *Settings → Languages & Frameworks → Alloy → Remote Config*):
+
+- Master list of profiles with add/edit/delete/duplicate.
+- Per-profile editor: name, base URL, collector ID, local attributes table, auth mode + credential field, polling interval (None / 30 s / 1 min / 5 min / custom), TLS toggle.
+- "Test connection" button → runs a single `GetConfig` and reports HTTP status / first 100 chars of body / parse error.
+
+**Action surface**:
+
+- *Tools → Alloy → Open Remote Config…* — opens a popup listing profiles; selecting one fetches and opens the viewer.
+- *Refresh* gutter button on the open viewer (always available regardless of poll setting).
+- *Edit Profile* link in the editor banner so users can jump to settings without hunting through menus.
+
+**Fetching pipeline** (`AlloyRemoteConfigService`, `@Service(Level.PROJECT)`):
+
+1. Build a `GetConfigRequest` JSON: `{ id: collectorId, local_attributes: {...}, hash: lastHash ?: "" }`. Connect-JSON uses `snake_case` field names matching the proto, not the proto3 JSON `camelCase` default — we pin this in tests.
+2. POST to `{baseUrl}/collector.v1.CollectorService/GetConfig`. Headers: `Content-Type: application/json`, `Accept: application/json`, `Connect-Protocol-Version: 1`, plus auth.
+3. Off the EDT via `java.net.http.HttpClient` (already in the bundled JDK 21 — no new dep). Wrap the call in a `ProgressIndicator`-bound future for cancellation.
+4. On 2xx: parse `GetConfigResponse`. If `not_modified == true`, leave the existing `LightVirtualFile` content alone and just refresh the banner timestamp. Otherwise, update content, store the new `hash` in the profile's runtime state (not persisted), reload the editor.
+5. On 4xx/5xx: keep the old content, surface a `Notification` with the status code and first line of the error body, log the full response. Connect errors come back as `{ "code": "unavailable", "message": "..." }` — show that message verbatim.
+6. On network failure / timeout: same path as above, with the exception message. Treat 401/403 as auth-config problems and surface a "fix profile" link in the notification.
+
+**Editor integration**:
+
+- One `LightVirtualFile` per profile, named `<profile.name>.alloy`, file type `AlloyFileType`. Content set via `setContent(...)`. Mark `isWritable = false`.
+- Open via `FileEditorManager.openFile`. Opening the same profile twice reuses the existing virtual file so polling updates land in the visible editor.
+- `EditorNotificationProvider` shows a banner with: profile name, base URL, collector ID, last-fetched timestamp, current hash, polling state, and a "Refresh now" button. Refresh on click via the same service.
+- Read-only is enforced by both `isWritable = false` and a `FileDocumentManagerListener` veto — IntelliJ does honour `isWritable` but the listener gives us a place to show a friendly "this file is a remote-config snapshot; edit your remote config server instead" message rather than a generic IDE warning.
+- **Click-to-jump comes free**: because the `LightVirtualFile` is `AlloyFileType`, M1–M3's parser, references, and find-usages all activate on it. Same code, no special-casing.
+
+**Polling**:
+
+- One `Alarm` (`Alarm.ThreadToUse.POOLED_THREAD`) per project, single timer reused across profiles to keep thread count bounded.
+- Poll only when at least one remote-config viewer is open in the project. `FileEditorManagerListener` toggles polling on first-open / last-close — this avoids burning request quota on minimised IDE windows.
+- Per-profile interval, with a global floor of 10 s to protect users from accidentally hammering production servers.
+- Polls are coalesced: if a poll is in flight when its next tick fires, skip the tick.
+- Polling pauses while the IDE is in modal state (settings dialog open, etc.) — `ApplicationManager.getApplication().isDispatchThread`-aware scheduling handles this naturally.
+
+**Open questions** (resolve at M10):
+
+- **Self-identification ethics**. Sending a `GetConfigRequest` with a real production collector's `id` may make the server think that collector phoned home — depending on the server implementation, this could affect heartbeat tracking or active-collector counts. Default to a synthetic ID prefix (e.g. `idea-plugin-{user}-{uuid}`) and document that users who want the *exact* config a specific collector receives must override it. **This is a real risk** and worth flagging in settings UI copy.
+- **`RegisterCollector` / `UnregisterCollector`**. Some servers require a prior `RegisterCollector` call before `GetConfig` will return content. Punt this to a "Register on first fetch" toggle in the profile if real-world testing shows it's needed. Default off.
+- **Connect protocol negotiation**. The connect-go server also supports gRPC and gRPC-web on the same endpoint; we deliberately use connect-JSON only, since it's the simplest wire format. If a server is configured `Connect-only=false` and rejects JSON, we'll find out at "Test connection" time.
+- **Response size**. Large fleets can push multi-MB configs. Set a hard cap (e.g. 10 MB) on response body size before parsing — the editor handles MB-sized files fine, but unbounded reads from a malicious / misconfigured server are a denial-of-service vector.
+
+**Testing**:
+
+- Unit-test the request-builder + response-parser with hand-rolled JSON fixtures (no network). Cover: `not_modified=true`, content update, error responses, malformed JSON.
+- Lightweight HTTP fixture using `com.sun.net.httpserver.HttpServer` (bundled in the JDK) for end-to-end fetch tests. No external test infrastructure.
+- Manually verify against a real connect-go server (run `alloy-remote-config`'s example server) before shipping; not gated in CI.
