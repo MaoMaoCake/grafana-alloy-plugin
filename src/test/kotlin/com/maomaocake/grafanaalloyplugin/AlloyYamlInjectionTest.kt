@@ -1,9 +1,14 @@
 package com.maomaocake.grafanaalloyplugin
 
 import com.intellij.lang.injection.InjectedLanguageManager
+import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.psi.PsiElement
+import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import com.maomaocake.grafanaalloyplugin.injection.AlloyInjectionSettings
 import com.maomaocake.grafanaalloyplugin.injection.AlloyYamlBlockScalarInspection
+import com.maomaocake.grafanaalloyplugin.injection.convertQuotedToBlockScalar
+import org.jetbrains.yaml.psi.YAMLQuotedText
 import org.jetbrains.yaml.psi.YAMLScalar
 
 /**
@@ -96,6 +101,9 @@ class AlloyYamlInjectionTest : BasePlatformTestCase() {
      */
     fun testQuotedScalarFlaggedWithConvertQuickFix() {
         myFixture.enableInspections(AlloyYamlBlockScalarInspection::class.java)
+        // Auto-convert is on by default; disable it for this test so the file stays in
+        // its original quoted form long enough for the inspection (and quick fix) to run.
+        AlloyInjectionSettings.getInstance(project).autoConvertQuotedScalars = false
         myFixture.configureByText(
             "quoted.yaml",
             "data:\n  config.alloy: \"prometheus.<caret>scrape \\\"x\\\" {}\\nprometheus.remote_write \\\"rw\\\" {}\\n\"\n",
@@ -118,6 +126,48 @@ class AlloyYamlInjectionTest : BasePlatformTestCase() {
             "expected decoded Alloy content after the fix, got:\n$after",
             after.contains("prometheus.scrape \"x\" {}") &&
                 after.contains("prometheus.remote_write \"rw\" {}"),
+        )
+    }
+
+    /**
+     * The auto-convert listener runs the same `convertQuotedToBlockScalar` helper that the
+     * inspection's quick fix uses. We exercise the helper directly rather than the listener
+     * because `BasePlatformTestCase` uses a light project where `FileEditorManagerListener`
+     * events don't reliably fire — testing the listener wrapper would test the platform's
+     * event plumbing, not our logic.
+     */
+    fun testAutoConvertHelperRewritesQuotedConfigToBlockScalar() {
+        // Disable the listener so we exercise the helper directly without racing the
+        // listener's own write action on file open.
+        AlloyInjectionSettings.getInstance(project).autoConvertQuotedScalars = false
+        myFixture.configureByText(
+            "cm.yaml",
+            "apiVersion: v1\n" +
+                "data:\n" +
+                "  config.alloy: \"prom.scrape \\\"x\\\" {}\\nprom.write \\\"rw\\\" {}\\n\"\n" +
+                "  errorkey: |\n" +
+                "    prom.scrape \"x\" {}\n",
+        )
+
+        val quoteds = PsiTreeUtil.findChildrenOfType(myFixture.file, YAMLQuotedText::class.java).toList()
+        assertEquals("expected exactly one quoted scalar in the fixture", 1, quoteds.size)
+
+        WriteCommandAction.runWriteCommandAction(project) {
+            convertQuotedToBlockScalar(project, quoteds.single())
+        }
+
+        val after = myFixture.file.text
+        assertTrue(
+            "expected `config.alloy: |` after auto-convert, got:\n$after",
+            after.contains("config.alloy: |"),
+        )
+        assertTrue(
+            "expected decoded body lines after auto-convert, got:\n$after",
+            after.contains("prom.scrape \"x\" {}") && after.contains("prom.write \"rw\" {}"),
+        )
+        assertTrue(
+            "auto-convert must not touch a key that was already a block scalar:\n$after",
+            after.contains("errorkey: |"),
         )
     }
 }

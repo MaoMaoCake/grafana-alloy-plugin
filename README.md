@@ -112,9 +112,16 @@ PyCharm, WebStorm, CLion, and others that share the platform).
     *Services* tool window produce when round-tripping a live
     ConfigMap.
 
-  Single-line quoted scalars get a *Convert to `|` block scalar*
-  quick fix that re-encodes the value, after which full editor
-  support kicks in.
+  Single-line quoted scalars (rare — usually pasted snippets) are
+  **auto-converted** to `|` block scalars on file open, so the full
+  editor experience kicks in immediately. The conversion is byte-
+  identical apart from dropping meaningless trailing whitespace
+  (Alloy doesn't care about whitespace, so config behaviour is
+  unchanged). Read-only files are skipped, and you can disable the
+  behaviour under *Settings → Languages & Frameworks → Alloy →
+  ConfigMap injection* if you want bytes-exact round-trips with the
+  cluster — the manual *Convert to `|` block scalar* quick fix still
+  shows on the inspection in that case.
 - **Inline docs** (Ctrl/Cmd-Q) on component blocks, attribute keys, and
   dotted references: stability, Go type, port types, arg tables, docs URL.
   All content is HTML-escaped to avoid popup injection from malicious

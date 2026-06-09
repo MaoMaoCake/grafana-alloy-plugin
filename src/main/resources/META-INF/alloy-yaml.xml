@@ -16,5 +16,17 @@
             enabledByDefault="true"
             level="WARNING"
             implementationClass="com.maomaocake.grafanaalloyplugin.injection.AlloyYamlBlockScalarInspection"/>
+
+        <projectConfigurable
+            parentId="com.maomaocake.grafanaalloyplugin.settings.envfile"
+            instance="com.maomaocake.grafanaalloyplugin.injection.AlloyInjectionConfigurable"
+            id="com.maomaocake.grafanaalloyplugin.settings.injection"
+            displayName="ConfigMap injection"/>
     </extensions>
+
+    <projectListeners>
+        <listener
+            class="com.maomaocake.grafanaalloyplugin.injection.AlloyAutoConvertOnOpen"
+            topic="com.intellij.openapi.fileEditor.FileEditorManagerListener"/>
+    </projectListeners>
 </idea-plugin>
