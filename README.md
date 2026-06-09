@@ -67,6 +67,23 @@ PyCharm, WebStorm, CLion, and others that share the platform).
   - Unknown / missing-required arguments (catalog-driven).
   - Port-type mismatches on references.
   - Stability warnings for public-preview / experimental components.
+- **External validator** (macOS / Linux only — `alloy validate` doesn't ship
+  in Windows binaries)
+  - Right-click an `*.alloy` file or a folder in the Project View →
+    *Validate '…'* runs `alloy validate` against just that target.
+  - Also available from *Tools → Validate Alloy Config* and from the editor
+    right-click menu.
+  - Optional **on-idle** trigger that re-runs the validator after typing
+    pauses, mapping each error onto the right `line:col` as a red squiggle.
+  - Results land in an **Alloy Validate** tool window: each diagnostic is a
+    clickable `path:line:col` hyperlink that jumps the editor to the
+    offending location, with the raw stderr (carets, surrounding lines)
+    rendered underneath.
+  - A balloon summarises up to 5 issues with a *Show details* button that
+    opens the console.
+  - Configurable in *Settings → Languages & Frameworks → Alloy → Validate*:
+    binary path (blank uses `PATH`), trigger mode, `--stability.level`,
+    `--feature.community-components.enabled`, plus a *Test binary* probe.
 - **Inline docs** (Ctrl/Cmd-Q) on component blocks, attribute keys, and
   dotted references: stability, Go type, port types, arg tables, docs URL.
   All content is HTML-escaped to avoid popup injection from malicious
@@ -119,14 +136,19 @@ Alloy Plugin**.
 
 Shipped so far: parser, per-namespace highlighting, completion (including
 port-type- and declare-aware reference completion), inspections, inline
-docs, cross-file references, envfile templating, and IDE essentials.
+docs, cross-file references, envfile templating, the `alloy validate`
+shellout integration, and IDE essentials.
 
 Planned (see [`PLAN.md`](./PLAN.md)):
 
-- **External validator**: on-demand / on-save `alloy validate` shellout,
-  gated behind OS detection (macOS/Linux only — Windows binaries don't
-  ship the subcommand) and a configurable binary path, with stderr parsed
-  into editor annotations.
+- **Kubernetes ConfigMap injection**: today the plugin only activates on
+  `*.alloy` files, but in production Alloy configs almost always live
+  inside a `ConfigMap` YAML. A `LanguageInjectionContributor` will inject
+  the Alloy language into block scalars under `kind: ConfigMap`
+  documents (or any key matching a configurable allow-list), so all the
+  highlighting / completion / references / inspections / docs work
+  inside YAML. Phase 2 ties into the Kubernetes plugin's *Services* tool
+  window for live-cluster editing.
 - **Embedded Alloy web UI**: a tool window backed by `JBCefBrowser`
   pointed at `http://localhost:12345`.
 - **Richer inline docs**: per-argument prose descriptions parsed from the
