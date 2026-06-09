@@ -9,7 +9,17 @@ data:
     prometheus.scrape "err" {
       targets = prometheus.exporter.unix.unix.targets
       forward_to = [prometheus.remote_write.test3.receiver]
-    }  
+    }
+    prometheus.remote_write "test3" {
+    
+    }
+  whitespace.alloy: |
+    prometheus.exporter.unix "unix" {
+    }
+    prometheus.scrape "err" {
+      targets = prometheus.exporter.unix.unix.targets
+      forward_to = [prometheus.remote_write.test3.receiver]
+    }  //there is a whitespace at the end of this line
     prometheus.remote_write "test3" {
     
     }
