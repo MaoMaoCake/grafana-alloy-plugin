@@ -84,6 +84,26 @@ PyCharm, WebStorm, CLion, and others that share the platform).
   - Configurable in *Settings → Languages & Frameworks → Alloy → Validate*:
     binary path (blank uses `PATH`), trigger mode, `--stability.level`,
     `--feature.community-components.enabled`, plus a *Test binary* probe.
+- **Run with Alloy** — launch a real Alloy instance from the IDE
+  - Right-click an `*.alloy` file or a folder → *Run with Alloy* spawns
+    `alloy run` against the target. Also available from *Tools* and the
+    editor right-click menu.
+  - Process output streams into the standard **Run** tool window (Stop /
+    Rerun toolbar wired automatically) — config errors that prevent Alloy
+    from coming up are visible in real time, with line/column prefixes.
+  - **Auto port selection**: starts at `12345` (Alloy's default) and walks
+    up to the first free port if it's busy. Bound to `127.0.0.1` only.
+  - **Embedded Alloy UI** in a dedicated tool window backed by `JBCefBrowser`,
+    with Back / Forward / Reload / Home buttons (Home jumps back to the
+    running instance after you click out to grafana.com docs). Falls back
+    to "Open in system browser" on IDE runtimes without JCEF.
+  - Per-run `--storage.path` pointed at a tempdir, cleaned up on stop, so
+    `data-alloy/` never appears next to your config or in your VCS diff.
+- **Kubernetes ConfigMap support**: every feature above (highlighting,
+  completion, references, inspections, Cmd-Q docs) works inside YAML
+  block scalars under keys named `config.alloy` or `*.alloy` — the
+  default key in the upstream Alloy Helm chart. Open a `ConfigMap` and
+  edit its embedded Alloy as if it were a `*.alloy` file.
 - **Inline docs** (Ctrl/Cmd-Q) on component blocks, attribute keys, and
   dotted references: stability, Go type, port types, arg tables, docs URL.
   All content is HTML-escaped to avoid popup injection from malicious
@@ -137,25 +157,25 @@ Alloy Plugin**.
 Shipped so far: parser, per-namespace highlighting, completion (including
 port-type- and declare-aware reference completion), inspections, inline
 docs, cross-file references, envfile templating, the `alloy validate`
-shellout integration, and IDE essentials.
+shellout integration, the `alloy run` integration with embedded UI tool
+window, Kubernetes ConfigMap injection, and IDE essentials.
 
 Planned (see [`PLAN.md`](./PLAN.md)):
 
-- **Kubernetes ConfigMap injection**: today the plugin only activates on
-  `*.alloy` files, but in production Alloy configs almost always live
-  inside a `ConfigMap` YAML. A `LanguageInjectionContributor` will inject
-  the Alloy language into block scalars under `kind: ConfigMap`
-  documents (or any key matching a configurable allow-list), so all the
-  highlighting / completion / references / inspections / docs work
-  inside YAML. Phase 2 ties into the Kubernetes plugin's *Services* tool
-  window for live-cluster editing.
-- **Embedded Alloy web UI**: a tool window backed by `JBCefBrowser`
-  pointed at `http://localhost:12345`.
 - **Richer inline docs**: per-argument prose descriptions parsed from the
   upstream `//` Go comments.
 - **Multi-version catalog**: project-level setting to pick which Alloy
   version's schema drives completion and inspections, so configs targeted
   at older fleets don't false-positive on newer-only arguments.
+- **No-destination / dead-config warnings**: flag a `prometheus.remote_write`
+  block that nothing forwards to, or a labeled block that's never referenced.
+- **Secrets-in-plaintext detector**: catalog already knows which arguments
+  are `alloytypes.Secret`; warn when one gets a literal string value
+  instead of `sys.env(…)` / `local.file(…)` / `${VAR}`.
+- **Kubernetes Services-tool-window integration** (Phase 2 of ConfigMap
+  support): right-click a live `ConfigMap` in PyCharm Pro / IDEA Ultimate's
+  *Services* tree → edit the embedded Alloy with full plugin support, run
+  validate against the live content, push back to the cluster.
 
 ## License
 
