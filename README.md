@@ -101,9 +101,20 @@ PyCharm, WebStorm, CLion, and others that share the platform).
     `data-alloy/` never appears next to your config or in your VCS diff.
 - **Kubernetes ConfigMap support**: every feature above (highlighting,
   completion, references, inspections, Cmd-Q docs) works inside YAML
-  block scalars under keys named `config.alloy` or `*.alloy` — the
-  default key in the upstream Alloy Helm chart. Open a `ConfigMap` and
-  edit its embedded Alloy as if it were a `*.alloy` file.
+  scalars under keys named `config.alloy` or `*.alloy` — the default
+  key in the upstream Alloy Helm chart. Open a `ConfigMap` and edit
+  its embedded Alloy as if it were a `*.alloy` file. Both shapes are
+  handled:
+  - **Block scalars** (`|`, `|-`, `|+`, `>`) — what `helm template`
+    and hand-authored ConfigMaps usually produce.
+  - **Multi-line quoted scalars** (`"...\n..."` wrapped across lines)
+    — what `kubectl get cm -o yaml` and the Kubernetes plugin's
+    *Services* tool window produce when round-tripping a live
+    ConfigMap.
+
+  Single-line quoted scalars get a *Convert to `|` block scalar*
+  quick fix that re-encodes the value, after which full editor
+  support kicks in.
 - **Inline docs** (Ctrl/Cmd-Q) on component blocks, attribute keys, and
   dotted references: stability, Go type, port types, arg tables, docs URL.
   All content is HTML-escaped to avoid popup injection from malicious

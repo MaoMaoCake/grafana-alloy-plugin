@@ -1,5 +1,4 @@
 apiVersion: v1
 data:
-  config.alloy: "prometheus.exporter.unix \"unix\" {\n}\nprometheus.<caret>scrape \"err\"
-    {\n  targets = prometheus.exporter.unix.unix.targets\n  forward_to = [prometheus.remote_write.test3.receiver]\n}
-    \ \nprometheus.remote_write \"test3\" {\n\n}\n"
+  config.alloy: "prometheus.<caret>scrape \"err\" {\n}\nprometheus.remote_write
+    \"x\" {\n}\n"

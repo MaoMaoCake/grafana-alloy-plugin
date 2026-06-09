@@ -7,5 +7,14 @@
     <extensions defaultExtensionNs="com.intellij">
         <multiHostInjector
             implementation="com.maomaocake.grafanaalloyplugin.injection.AlloyYamlInjector"/>
+
+        <localInspection
+            language="yaml"
+            shortName="AlloyYamlBlockScalar"
+            displayName="Alloy config in quoted scalar"
+            groupName="Grafana Alloy"
+            enabledByDefault="true"
+            level="WARNING"
+            implementationClass="com.maomaocake.grafanaalloyplugin.injection.AlloyYamlBlockScalarInspection"/>
     </extensions>
 </idea-plugin>
