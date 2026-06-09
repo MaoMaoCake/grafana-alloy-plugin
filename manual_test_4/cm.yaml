@@ -1,3 +1,4 @@
+apiVersion: v1
 kind: ConfigMap
 metadata:
   name: alloy
@@ -12,7 +13,7 @@ data:
     prometheus.remote_write "test3" {
     
     }
-  errorkey:
+  noparsekey: |
     prometheus.exporter.unix "unix" {
     }
     prometheus.scrape "err" {
