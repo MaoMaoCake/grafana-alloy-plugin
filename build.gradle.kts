@@ -9,7 +9,7 @@ plugins {
 }
 
 group = "com.maomaocake"
-version = "0.3.0"
+version = "0.3.1"
 
 repositories {
     mavenCentral()
@@ -40,7 +40,7 @@ dependencies {
 intellijPlatform {
     pluginConfiguration {
         ideaVersion {
-            sinceBuild = "231"
+            sinceBuild = "252"
             // Keep this installable on newer IDE branches.
             untilBuild = providers.provider { null }
         }
