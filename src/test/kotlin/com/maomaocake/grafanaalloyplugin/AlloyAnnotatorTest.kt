@@ -26,6 +26,11 @@ class AlloyAnnotatorTest : BasePlatformTestCase() {
         myFixture.checkHighlighting(true, false, false)
     }
 
+    fun testLokiProcessJsonStageIsKnown() {
+        myFixture.configureByFile("lokiProcessJsonStage.alloy")
+        myFixture.checkHighlighting(true, false, false)
+    }
+
     fun testMissingRequiredArgsFlagged() {
         myFixture.configureByFile("missingRequired.alloy")
         myFixture.checkHighlighting(false, false, false)

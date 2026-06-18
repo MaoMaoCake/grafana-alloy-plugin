@@ -82,7 +82,7 @@ private class AlloyCompletionProvider : CompletionProvider<CompletionParameters>
      * deeper like `prometheus.remote_write > endpoint > basic_auth`).
      */
     private fun addBlockMembers(result: CompletionResultSet, component: AlloyComponent, path: List<String>) {
-        val (argsHere, blocksHere) = resolvePath(component, path) ?: return
+        val (argsHere, blocksHere) = AlloyCatalogLookup.resolvePath(component, path) ?: return
 
         for (arg in argsHere) {
             result.addElement(
@@ -243,7 +243,7 @@ private fun classify(parameters: CompletionParameters): Site? {
             ?: return null
         val rootName = chain.firstOrNull() ?: return null
         val component = AlloyCatalogService.getInstance().catalog.byName()[rootName] ?: return null
-        val (argsHere, _) = resolvePath(component, chain.drop(1)) ?: return null
+        val (argsHere, _) = AlloyCatalogLookup.resolvePath(component, chain.drop(1)) ?: return null
         val arg = argsHere.firstOrNull { it.name == attrName } ?: return null
         val elementType = arg.goType.removePrefix("[]").takeIf { it != arg.goType } ?: return null
         val portKey = AlloyCatalogLookup.normalizePortType(elementType) ?: return null
@@ -258,25 +258,6 @@ private fun classify(parameters: CompletionParameters): Site? {
 
 // `normalizePortType` now lives in `AlloyCatalogLookup` — both the completion contributor and
 // the annotator share it, so a new port type doesn't need to be added in two places.
-
-/**
- * Walks [component]'s nested blocks along [path] and returns the (args, blocks) available at
- * that depth. Returns null if the path doesn't resolve.
- */
-private fun resolvePath(
-    component: AlloyComponent,
-    path: List<String>,
-): Pair<List<com.maomaocake.grafanaalloyplugin.catalog.AlloyArg>, List<CatalogBlock>>? {
-    if (path.isEmpty()) return component.argsList() to component.blocksList()
-    var blocks = component.blocksList()
-    var argsHere: List<com.maomaocake.grafanaalloyplugin.catalog.AlloyArg> = emptyList()
-    for (segment in path) {
-        val match = blocks.firstOrNull { it.name == segment } ?: return null
-        argsHere = match.argsList()
-        blocks = match.blocksList()
-    }
-    return argsHere to blocks
-}
 
 /**
  * Scans [text] backwards from [caret] looking for the block names that enclose this caret.

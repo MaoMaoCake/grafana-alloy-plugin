@@ -1,0 +1,15 @@
+loki.process "logs" {
+    forward_to = []
+
+    stage.json {
+        expressions = {
+            level = "level",
+        }
+    }
+
+    stage.labels {
+        values = {
+            level = "",
+        }
+    }
+}
