@@ -9,7 +9,7 @@ plugins {
 }
 
 group = "com.maomaocake"
-version = "0.3.1"
+version = "0.3.2"
 
 repositories {
     mavenCentral()
@@ -53,6 +53,18 @@ intellijPlatform {
         }
 
         changeNotes = """
+            <h3>0.3.2</h3>
+            <ul>
+              <li><b>Fixed</b> false <i>Unknown nested block</i> warnings on
+                dotted <code>loki.process</code> stages such as
+                <code>stage.json</code> and <code>stage.labels</code>. These
+                dotted block names now resolve against the catalog, and their
+                contents are validated too. Thanks @ArmandoSchiano (#2).</li>
+            </ul>
+            <h3>0.3.1</h3>
+            <ul>
+              <li>Raised the minimum supported IDE to the 2025.2 branch.</li>
+            </ul>
             <h3>0.3.0</h3>
             <p><strong>Run, validate, and edit Alloy where it actually runs.</strong></p>
             <ul>

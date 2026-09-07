@@ -4,6 +4,27 @@ All notable changes to the Grafana Alloy JetBrains plugin are documented here.
 The format roughly follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versions track the JetBrains Marketplace releases.
 
+## [0.3.2] — 2026-09-07
+
+### Fixed
+
+- **False `Unknown nested block` warnings on dotted `loki.process` stages.**
+  Blocks written with a dotted name — `stage.json`, `stage.labels`, and the
+  other `stage.*` variants — were flagged as unknown even though they're
+  valid. The catalog models these as nested paths (`stage > json`), while the
+  PSI exposes the written name as a single dotted segment; the lookup now
+  expands dotted nested-block names against the catalog when there's no exact
+  match. As a side effect, the contents of these blocks (e.g. `expressions`,
+  `values`) are now validated too. Thanks @ArmandoSchiano (#2).
+
+## [0.3.1] — 2026-06-10
+
+### Changed
+
+- Raised the minimum supported IDE to the 2025.2 branch
+  (`sinceBuild` 231 → 252) and refreshed the generated lexer against the
+  newer platform.
+
 ## [0.3.0] — 2026-06-09
 
 This release is about meeting Alloy where it actually runs in production:
