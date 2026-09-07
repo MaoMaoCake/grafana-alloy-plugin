@@ -1,0 +1,24 @@
+// Fixes Issue #1 Thanks @ArmandoSchiano
+loki.process "webapp_json_labels" {
+	stage.json {
+		expressions = {
+			supplier         = "supplier",
+			step             = "step",
+			level            = "level",
+			event            = "event",
+			http_status_code = "http_status_code",
+		}
+	}
+
+	stage.labels {
+		values = {
+			supplier         = "supplier",
+			step             = "step",
+			level            = "level",
+			event            = "event",
+			http_status_code = "http_status_code",
+		}
+	}
+
+	forward_to = [loki.write.default.receiver]
+}
