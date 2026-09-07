@@ -1,0 +1,19 @@
+declare "get_environment_test" {
+    export "environment" {
+        value = "TEST"
+    }
+    argument "filename" {
+        optional = false
+        comment = "test"
+    }
+}
+
+declare "get_environment_prod" {
+    export "environment" {
+        value = "PROD"
+    }
+    argument "filename" {
+        optional = false
+        comment = "test"
+    }
+}

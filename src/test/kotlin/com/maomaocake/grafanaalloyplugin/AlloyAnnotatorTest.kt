@@ -16,6 +16,16 @@ class AlloyAnnotatorTest : BasePlatformTestCase() {
         myFixture.checkHighlighting(/* checkWarnings = */ false, /* checkInfos = */ false, /* checkWeakWarnings = */ false)
     }
 
+    fun testLabelsInSeparateDeclarationsAreAllowed() {
+        myFixture.configureByFile("separateDeclarations.alloy")
+        myFixture.checkHighlighting(false, false, false)
+    }
+
+    fun testDuplicateLabelsWithinDeclarationFlagged() {
+        myFixture.configureByFile("duplicateWithinDeclaration.alloy")
+        myFixture.checkHighlighting(false, false, false)
+    }
+
     fun testUnknownArgFlagged() {
         myFixture.configureByFile("unknownArg.alloy")
         myFixture.checkHighlighting(true, false, false)

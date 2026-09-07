@@ -1,0 +1,23 @@
+declare "get_environment" {
+    export <error descr="Duplicate component label: `export.environment`">"environment"</error> {
+        value = "TEST"
+    }
+    export <error descr="Duplicate component label: `export.environment`">"environment"</error> {
+        value = "PROD"
+    }
+    argument <error descr="Duplicate component label: `argument.filename`">"filename"</error> {
+        optional = false
+    }
+    argument <error descr="Duplicate component label: `argument.filename`">"filename"</error> {
+        optional = false
+    }
+}
+
+declare "another_environment" {
+    export "environment" {
+        value = "OTHER"
+    }
+    argument "filename" {
+        optional = false
+    }
+}

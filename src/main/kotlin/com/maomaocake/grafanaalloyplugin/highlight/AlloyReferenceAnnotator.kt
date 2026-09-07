@@ -12,7 +12,7 @@ import com.maomaocake.grafanaalloyplugin.psi.AlloyPsiUtil
 
 /**
  * Reports reference-level issues in Alloy files:
- *  - Duplicate labels: two blocks declared with the same dotted name + label.
+ *  - Duplicate labels: two blocks declared with the same dotted name + label in the same body.
  *  - Unresolved component references: a chain like `prometheus.scrape.name.targets` whose first
  *    segment is a known Alloy namespace but whose `(name, label)` prefix matches no block in
  *    this file.
@@ -28,14 +28,17 @@ class AlloyReferenceAnnotator : Annotator {
     }
 
     private fun checkDuplicateLabels(file: AlloyFile, holder: AnnotationHolder) {
-        val byKey = mutableMapOf<String, MutableList<AlloyBlock>>()
+        val byKey = mutableMapOf<Pair<PsiElement, String>, MutableList<AlloyBlock>>()
         for (block in PsiTreeUtil.findChildrenOfType(file, AlloyBlock::class.java)) {
             val labelPsi = block.blockLabel ?: continue
             val label = AlloyPsiUtil.unquoteLabel(labelPsi) ?: continue
             val key = (AlloyPsiUtil.blockNameIdents(block.blockName) + label).joinToString(".")
-            byKey.getOrPut(key) { mutableListOf() } += block
+            // Each block body has its own labels, including the body of a `declare` block.
+            val scope = PsiTreeUtil.getParentOfType(block, AlloyBlock::class.java) ?: file
+            byKey.getOrPut(scope to key) { mutableListOf() } += block
         }
-        for ((key, blocks) in byKey) {
+        for ((scopedKey, blocks) in byKey) {
+            val key = scopedKey.second
             if (blocks.size < 2) continue
             for (block in blocks) {
                 val labelPsi = block.blockLabel ?: continue
