@@ -88,7 +88,9 @@ class AlloyCatalogAnnotator : Annotator {
             val nested = PsiTreeUtil.findChildOfType(child, AlloyBlock::class.java, false)
             if (nested != null && nested.parent === child) {
                 val nestedName = AlloyPsiUtil.blockNameIdents(nested.blockName).joinToString(".")
-                if (nestedName !in knownBlocks && nestedName !in knownArgs) {
+                val nestedBlockResolves =
+                    AlloyCatalogLookup.resolvePath(ctx.component, ctx.path + nestedName) != null
+                if (!nestedBlockResolves && nestedName !in knownArgs) {
                     holder.newAnnotation(
                         HighlightSeverity.WARNING,
                         "Unknown nested block `$nestedName` in `${ctx.component.name}${pathSuffix(ctx.path)}`",

@@ -39,9 +39,10 @@ object AlloyCatalogLookup {
 
         val catalog = AlloyCatalogService.getInstance().catalog
         val component = catalog.byName()[rootName] ?: return null
-        val path = normalized.drop(1)
-        val (args, blocks) = resolvePath(component, path) ?: return null
-        return BlockContext(component, path, args, blocks)
+        val path = resolvePathInternal(component, normalized.drop(1)) ?: return null
+        val args = path.args
+        val blocks = path.blocks
+        return BlockContext(component, path.expanded, args, blocks)
     }
 
     /**
@@ -52,16 +53,46 @@ object AlloyCatalogLookup {
         component: AlloyComponent,
         path: List<String>,
     ): Pair<List<AlloyArg>, List<AlloyBlock>>? {
-        if (path.isEmpty()) return component.argsList() to component.blocksList()
+        val resolved = resolvePathInternal(component, path) ?: return null
+        return resolved.args to resolved.blocks
+    }
+
+    private fun resolvePathInternal(
+        component: AlloyComponent,
+        path: List<String>,
+    ): ResolvedPath? {
+        if (path.isEmpty()) {
+            return ResolvedPath(emptyList(), component.argsList(), component.blocksList())
+        }
         var blocks = component.blocksList()
         var argsHere: List<AlloyArg> = emptyList()
-        for (segment in path) {
-            val match = blocks.firstOrNull { it.name == segment } ?: return null
-            argsHere = match.argsList()
-            blocks = match.blocksList()
+        val expanded = mutableListOf<String>()
+        for (rawSegment in path) {
+            val exact = blocks.firstOrNull { it.name == rawSegment }
+            if (exact != null) {
+                expanded += rawSegment
+                argsHere = exact.argsList()
+                blocks = exact.blocksList()
+                continue
+            }
+
+            val splitSegments = rawSegment.split('.')
+            if (splitSegments.size <= 1 || splitSegments.any { it.isEmpty() }) return null
+            for (segment in splitSegments) {
+                val match = blocks.firstOrNull { it.name == segment } ?: return null
+                expanded += segment
+                argsHere = match.argsList()
+                blocks = match.blocksList()
+            }
         }
-        return argsHere to blocks
+        return ResolvedPath(expanded, argsHere, blocks)
     }
+
+    private data class ResolvedPath(
+        val expanded: List<String>,
+        val args: List<AlloyArg>,
+        val blocks: List<AlloyBlock>,
+    )
 
     data class BlockContext(
         val component: AlloyComponent,
