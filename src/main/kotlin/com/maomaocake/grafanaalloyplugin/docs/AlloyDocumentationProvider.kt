@@ -7,7 +7,6 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiTreeUtil
 import com.maomaocake.grafanaalloyplugin.catalog.AlloyArg
 import com.maomaocake.grafanaalloyplugin.catalog.AlloyCatalogLookup
-import com.maomaocake.grafanaalloyplugin.catalog.AlloyCatalogService
 import com.maomaocake.grafanaalloyplugin.catalog.AlloyComponent
 import com.maomaocake.grafanaalloyplugin.psi.AlloyAttribute
 import com.maomaocake.grafanaalloyplugin.psi.AlloyBlock

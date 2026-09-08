@@ -247,12 +247,13 @@ Each milestone is independently mergeable and leaves the plugin usable.
 - Doc-link gutter icons.
 - `verifyPlugin` clean run against the pinned platform version.
 
-**M6 — Multi-version catalog (§8)**
+**M6 — Multi-version catalog (§8)** — ✅ implemented
 
-- Bundle 3–4 catalogs under `resources/alloy/catalogs/<version>/components.json` + `manifest.json`.
-- Promote `AlloyCatalogService` to a project-level service that picks its catalog from a persisted setting.
-- Settings page with an Alloy-version dropdown; optional auto-detect from the `alloy` binary (depends on M4).
-- On settings change, refresh the DaemonCodeAnalyzer so inspections re-run against the new catalog.
+- Bundle 3–4 catalogs under `resources/alloy/catalogs/<version>/components.json` + `manifest.json`. *(Bundled: v1.9.2, v1.17.1, v1.18.1, v1.19.2; `manifest.json` is regenerated from disk by `build-catalog.sh`, default = highest.)*
+- Promote `AlloyCatalogService` to a project-level service that picks its catalog from a persisted setting. *(`AlloyCatalogSettings`, per-project; per-version parse cache.)*
+- Settings page with an Alloy-version dropdown; optional auto-detect from the `alloy` binary (depends on M4). *(`AlloyCatalogConfigurable` → *Settings → … → Alloy → Version*; auto-detect probes off the EDT, throttled retry, maps to nearest bundled via `AlloyVersions`.)*
+- On settings change, refresh the DaemonCodeAnalyzer so inspections re-run against the new catalog. *(Also refreshed when the `alloy` binary path changes on the Validate page while in auto-detect mode.)*
+- **Deferred:** application-level default fallback (§8) — currently every project defaults to "latest bundled"; a shared app-level default override is not yet wired.
 
 **M7 — Free-tier quality-of-life (§11)**
 

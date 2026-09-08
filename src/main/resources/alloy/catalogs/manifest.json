@@ -1,0 +1,25 @@
+{
+  "defaultVersion": "v1.19.2",
+  "versions": [
+    {
+      "version": "v1.9.2",
+      "components": 162,
+      "generatedAt": "2026-05-05T06:26:48Z"
+    },
+    {
+      "version": "v1.17.1",
+      "components": 181,
+      "generatedAt": "2026-09-08T05:53:24Z"
+    },
+    {
+      "version": "v1.18.1",
+      "components": 184,
+      "generatedAt": "2026-09-08T06:07:35Z"
+    },
+    {
+      "version": "v1.19.2",
+      "components": 184,
+      "generatedAt": "2026-09-08T06:19:40Z"
+    }
+  ]
+}

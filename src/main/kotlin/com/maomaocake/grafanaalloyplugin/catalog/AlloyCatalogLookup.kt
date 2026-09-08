@@ -37,7 +37,7 @@ object AlloyCatalogLookup {
         val normalized = if (chain.firstOrNull() == "declare") chain.drop(1) else chain
         val rootName = normalized.firstOrNull() ?: return null
 
-        val catalog = AlloyCatalogService.getInstance().catalog
+        val catalog = AlloyCatalogService.getInstance(block.project).catalog
         val component = catalog.byName()[rootName] ?: return null
         val path = resolvePathInternal(component, normalized.drop(1)) ?: return null
         val args = path.args

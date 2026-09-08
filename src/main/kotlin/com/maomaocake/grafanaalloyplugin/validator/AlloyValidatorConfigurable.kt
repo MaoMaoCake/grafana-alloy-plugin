@@ -1,8 +1,10 @@
 package com.maomaocake.grafanaalloyplugin.validator
 
+import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.options.Configurable
 import com.intellij.openapi.project.Project
+import com.maomaocake.grafanaalloyplugin.catalog.AlloyCatalogService
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBLabel
@@ -129,10 +131,19 @@ class AlloyValidatorConfigurable(private val project: Project) : Configurable {
 
     override fun apply() {
         val s = AlloyValidatorSettings.getInstance(project)
-        s.binaryPath = binaryPathField.text.trim()
+        val newBinaryPath = binaryPathField.text.trim()
+        val binaryChanged = newBinaryPath != s.binaryPath
+        s.binaryPath = newBinaryPath
         s.triggerMode = currentTriggerMode()
         s.stabilityLevel = stabilityCombo.selectedItem as AlloyValidatorSettings.Stability
         s.communityComponentsEnabled = communityToggle.isSelected
+
+        // The catalog's Auto-detect mode reads this binary's `--version`, so a path change must
+        // re-arm detection and re-highlight open files against the newly-resolved catalog.
+        if (binaryChanged) {
+            AlloyCatalogService.getInstance(project).reload()
+            DaemonCodeAnalyzer.getInstance(project).restart()
+        }
     }
 
     override fun reset() {

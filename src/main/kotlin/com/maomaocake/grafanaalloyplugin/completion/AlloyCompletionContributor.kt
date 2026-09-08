@@ -10,6 +10,7 @@ import com.intellij.codeInsight.completion.InsertionContext
 import com.intellij.codeInsight.lookup.LookupElement
 import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.openapi.editor.Document
+import com.intellij.openapi.project.Project
 import com.intellij.patterns.PlatformPatterns
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiTreeUtil
@@ -63,14 +64,14 @@ private class AlloyCompletionProvider : CompletionProvider<CompletionParameters>
         val scoped = if (typedPrefix.isEmpty()) result else result.withPrefixMatcher(typedPrefix)
 
         when (site) {
-            is Site.TopLevel -> addTopLevelComponents(scoped)
+            is Site.TopLevel -> addTopLevelComponents(scoped, parameters.originalFile.project)
             is Site.InsideBody -> addBlockMembers(scoped, site.component, site.path)
             is Site.Reference -> addReferenceCompletions(scoped, parameters, site.portTypeKey)
         }
     }
 
-    private fun addTopLevelComponents(result: CompletionResultSet) {
-        val catalog = AlloyCatalogService.getInstance().catalog
+    private fun addTopLevelComponents(result: CompletionResultSet, project: Project) {
+        val catalog = AlloyCatalogService.getInstance(project).catalog
         for (component in catalog.components) {
             result.addElement(buildTopLevelLookup(component))
         }
@@ -120,7 +121,7 @@ private class AlloyCompletionProvider : CompletionProvider<CompletionParameters>
         parameters: CompletionParameters,
         portTypeKey: String,
     ) {
-        val catalog = AlloyCatalogService.getInstance().catalog
+        val catalog = AlloyCatalogService.getInstance(parameters.originalFile.project).catalog
         // Scope the reference offers to respect declare module boundaries: inside a
         // `declare "foo" { … }` body, only blocks *in that module* can be referenced.
         //
@@ -242,7 +243,7 @@ private fun classify(parameters: CompletionParameters): Site? {
         val attrName = attribute.firstChild?.takeIf { it.node.elementType === AlloyElementTypes.IDENT }?.text
             ?: return null
         val rootName = chain.firstOrNull() ?: return null
-        val component = AlloyCatalogService.getInstance().catalog.byName()[rootName] ?: return null
+        val component = AlloyCatalogService.getInstance(original.project).catalog.byName()[rootName] ?: return null
         val (argsHere, _) = AlloyCatalogLookup.resolvePath(component, chain.drop(1)) ?: return null
         val arg = argsHere.firstOrNull { it.name == attrName } ?: return null
         val elementType = arg.goType.removePrefix("[]").takeIf { it != arg.goType } ?: return null
@@ -251,7 +252,7 @@ private fun classify(parameters: CompletionParameters): Site? {
     }
 
     val rootName = chain.firstOrNull() ?: return Site.TopLevel
-    val catalog = AlloyCatalogService.getInstance().catalog
+    val catalog = AlloyCatalogService.getInstance(original.project).catalog
     val component = catalog.byName()[rootName] ?: return null
     return Site.InsideBody(component = component, path = chain.drop(1))
 }

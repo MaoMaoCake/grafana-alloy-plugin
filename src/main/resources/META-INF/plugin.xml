@@ -106,6 +106,12 @@
 
         <projectConfigurable
             parentId="com.maomaocake.grafanaalloyplugin.settings.envfile"
+            instance="com.maomaocake.grafanaalloyplugin.catalog.AlloyCatalogConfigurable"
+            id="com.maomaocake.grafanaalloyplugin.settings.catalog"
+            displayName="Version"/>
+
+        <projectConfigurable
+            parentId="com.maomaocake.grafanaalloyplugin.settings.envfile"
             instance="com.maomaocake.grafanaalloyplugin.validator.AlloyValidatorConfigurable"
             id="com.maomaocake.grafanaalloyplugin.settings.validator"
             displayName="Validate"/>

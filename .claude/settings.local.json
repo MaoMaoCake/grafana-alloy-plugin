@@ -6,7 +6,11 @@
       "Read(//private/tmp/alloy-scout/alloy/**)",
       "Bash(./gradlew test *)",
       "Bash(./gradlew compileKotlin -x buildSearchableOptions)",
-      "Bash(./gradlew compileKotlin -x buildSearchableOptions --info)"
+      "Bash(./gradlew compileKotlin -x buildSearchableOptions --info)",
+      "Bash(go version *)",
+      "Bash(curl -s -m 5 -o /dev/null -w \"%{http_code}\" https://github.com/grafana/alloy)",
+      "Bash(git ls-remote *)",
+      "Bash(awk -F/ '{print $NF}')"
     ]
   }
 }

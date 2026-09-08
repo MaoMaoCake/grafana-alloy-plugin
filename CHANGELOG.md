@@ -4,6 +4,28 @@ All notable changes to the Grafana Alloy JetBrains plugin are documented here.
 The format roughly follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versions track the JetBrains Marketplace releases.
 
+## [Unreleased]
+
+### Added
+
+- **Multi-version Alloy catalog support.** The plugin now bundles component
+  catalogs for several Alloy releases (v1.9.2, v1.17.1, v1.18.1, v1.19.2) instead
+  of a single pinned one. A new *Settings → Languages & Frameworks → Alloy →
+  Version* page lets each project choose which catalog drives completion,
+  inspections, and inline docs:
+  - **Latest bundled** (default) — always the newest catalog shipped in the plugin.
+  - **Auto-detect** — probes the configured `alloy` binary's `--version` (off the
+    EDT) and picks the nearest bundled catalog.
+  - a **pinned version** — for teams targeting an older/other release than the one
+    installed locally.
+
+  Changing the version — or the binary path on the *Validate* page while in
+  auto-detect mode — re-runs inspections against the newly-selected catalog. This
+  stops false positives on older deployments (a v1.19-only argument flagged in a
+  v1.9 config) and surfaces the completions that match the version you actually
+  run. The catalog service is now project-level, so different projects can target
+  different Alloy versions.
+
 ## [0.3.3] — 2026-09-07
 
 ### Fixed
