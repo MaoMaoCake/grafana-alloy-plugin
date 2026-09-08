@@ -9,7 +9,7 @@ plugins {
 }
 
 group = "com.maomaocake"
-version = "0.3.2"
+version = "0.3.3"
 
 repositories {
     mavenCentral()
@@ -53,6 +53,15 @@ intellijPlatform {
         }
 
         changeNotes = """
+            <h3>0.3.3</h3>
+            <ul>
+              <li><b>Fixed</b> duplicate-label errors that were scoped to the
+                whole file instead of the enclosing block. Two
+                <code>declare</code> modules can now each declare an
+                <code>export "environment"</code> / <code>argument "filename"</code>
+                without being wrongly flagged as duplicates; labels only clash
+                within the same scope.</li>
+            </ul>
             <h3>0.3.2</h3>
             <ul>
               <li><b>Fixed</b> false <i>Unknown nested block</i> warnings on

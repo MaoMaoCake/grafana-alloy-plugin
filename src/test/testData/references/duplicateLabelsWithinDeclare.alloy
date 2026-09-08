@@ -1,0 +1,9 @@
+// Two exports with the same label inside the SAME `declare` scope DO collide.
+declare "mod" {
+    export <error descr="Duplicate component label: `export.environment`">"environment"</error> {
+        value = "A"
+    }
+    export <error descr="Duplicate component label: `export.environment`">"environment"</error> {
+        value = "B"
+    }
+}

@@ -1,0 +1,22 @@
+// Same label names in two different `declare` modules must NOT collide: each `declare`
+// is its own scope. Neither `export "environment"` nor `argument "filename"` should be
+// flagged as a duplicate here.
+declare "get_environment_test" {
+    export "environment" {
+        value = "TEST"
+    }
+    argument "filename" {
+        optional = false
+        comment  = "test"
+    }
+}
+
+declare "get_environment_prod" {
+    export "environment" {
+        value = "PROD"
+    }
+    argument "filename" {
+        optional = false
+        comment  = "test"
+    }
+}

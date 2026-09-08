@@ -4,6 +4,18 @@ All notable changes to the Grafana Alloy JetBrains plugin are documented here.
 The format roughly follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versions track the JetBrains Marketplace releases.
 
+## [0.3.3] — 2026-09-07
+
+### Fixed
+
+- **Duplicate-label errors were file-scoped instead of block-scoped.** A
+  label only has to be unique within its enclosing scope, so two `declare`
+  modules could each legitimately declare `export "environment"` and
+  `argument "filename"` — but both were wrongly flagged as duplicates.
+  Duplicate detection is now keyed by the enclosing block (or the file, for
+  top-level components), so a label only clashes with a sibling in the same
+  scope.
+
 ## [0.3.2] — 2026-09-07
 
 ### Fixed

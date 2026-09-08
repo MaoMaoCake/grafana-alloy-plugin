@@ -28,18 +28,26 @@ class AlloyReferenceAnnotator : Annotator {
     }
 
     private fun checkDuplicateLabels(file: AlloyFile, holder: AnnotationHolder) {
-        val byKey = mutableMapOf<String, MutableList<AlloyBlock>>()
+        // A label only has to be unique within its enclosing scope, not across the whole file.
+        // Top-level components share the file scope; blocks nested inside another block (e.g. an
+        // `export`/`argument` inside a `declare "…"` module) are scoped to that parent block, so
+        // two different `declare`s can each declare `export "environment"` without colliding. Key
+        // by (scope owner, dotted name + label) — where the scope owner is the nearest enclosing
+        // block, or the file itself for top-level components.
+        val byKey = mutableMapOf<Pair<PsiElement, String>, MutableList<AlloyBlock>>()
         for (block in PsiTreeUtil.findChildrenOfType(file, AlloyBlock::class.java)) {
             val labelPsi = block.blockLabel ?: continue
             val label = AlloyPsiUtil.unquoteLabel(labelPsi) ?: continue
-            val key = (AlloyPsiUtil.blockNameIdents(block.blockName) + label).joinToString(".")
-            byKey.getOrPut(key) { mutableListOf() } += block
+            val name = (AlloyPsiUtil.blockNameIdents(block.blockName) + label).joinToString(".")
+            val scope: PsiElement = PsiTreeUtil.getParentOfType(block, AlloyBlock::class.java, /* strict = */ true) ?: file
+            byKey.getOrPut(scope to name) { mutableListOf() } += block
         }
         for ((key, blocks) in byKey) {
             if (blocks.size < 2) continue
+            val name = key.second
             for (block in blocks) {
                 val labelPsi = block.blockLabel ?: continue
-                holder.newAnnotation(HighlightSeverity.ERROR, "Duplicate component label: `$key`")
+                holder.newAnnotation(HighlightSeverity.ERROR, "Duplicate component label: `$name`")
                     .range(labelPsi.textRange)
                     .create()
             }
