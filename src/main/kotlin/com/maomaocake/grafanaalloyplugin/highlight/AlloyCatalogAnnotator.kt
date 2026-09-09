@@ -3,9 +3,15 @@ package com.maomaocake.grafanaalloyplugin.highlight
 import com.intellij.lang.annotation.AnnotationHolder
 import com.intellij.lang.annotation.Annotator
 import com.intellij.lang.annotation.HighlightSeverity
+import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiTreeUtil
 import com.maomaocake.grafanaalloyplugin.catalog.AlloyCatalogLookup
+import com.maomaocake.grafanaalloyplugin.catalog.AlloyCatalogService
+import com.maomaocake.grafanaalloyplugin.catalog.AlloyCrossVersion
+import com.maomaocake.grafanaalloyplugin.catalog.AlloyVersions
+import com.maomaocake.grafanaalloyplugin.catalog.SwitchAlloyVersionFix
 import com.maomaocake.grafanaalloyplugin.psi.AlloyAttribute
 import com.maomaocake.grafanaalloyplugin.psi.AlloyBlock
 import com.maomaocake.grafanaalloyplugin.psi.AlloyElementTypes
@@ -44,7 +50,14 @@ class AlloyCatalogAnnotator : Annotator {
     // -------------------------------------------------------------------------------------
 
     private fun annotateBlock(block: AlloyBlock, holder: AnnotationHolder) {
-        val ctx = AlloyCatalogLookup.resolveBlock(block) ?: return
+        val ctx = AlloyCatalogLookup.resolveBlock(block)
+        if (ctx == null) {
+            // Not a known component in the *active* catalog. It may still be a real component that
+            // only exists in another bundled Alloy version — flag that as a version mismatch and
+            // offer to switch. (Genuinely-unknown names fall through silently, as before.)
+            annotateComponentVersionMismatch(block, holder)
+            return
+        }
 
         // Stability: flag once per outermost component block. Suppress for nested blocks so we
         // don't spam the same warning on every sub-block.
@@ -78,10 +91,19 @@ class AlloyCatalogAnnotator : Annotator {
                     // skip the unknown-arg warning; the block-shaped version will be flagged by
                     // the inner block annotation pass when they change syntax.
                     if (name in knownBlocks) continue
-                    holder.newAnnotation(
-                        HighlightSeverity.WARNING,
-                        "Unknown argument `$name` on `${ctx.component.name}${pathSuffix(ctx.path)}`",
-                    ).range(nameLeaf.textRange).create()
+                    val otherVersions = AlloyCrossVersion.versionsWithArg(ctx.component.name, ctx.path, name)
+                    if (otherVersions.isNotEmpty()) {
+                        reportVersionMismatch(
+                            holder, nameLeaf.textRange, block.project,
+                            "Argument `$name` on `${ctx.component.name}${pathSuffix(ctx.path)}`",
+                            otherVersions,
+                        )
+                    } else {
+                        holder.newAnnotation(
+                            HighlightSeverity.WARNING,
+                            "Unknown argument `$name` on `${ctx.component.name}${pathSuffix(ctx.path)}`",
+                        ).range(nameLeaf.textRange).create()
+                    }
                 }
                 continue
             }
@@ -91,10 +113,19 @@ class AlloyCatalogAnnotator : Annotator {
                 val nestedBlockResolves =
                     AlloyCatalogLookup.resolvePath(ctx.component, ctx.path + nestedName) != null
                 if (!nestedBlockResolves && nestedName !in knownArgs) {
-                    holder.newAnnotation(
-                        HighlightSeverity.WARNING,
-                        "Unknown nested block `$nestedName` in `${ctx.component.name}${pathSuffix(ctx.path)}`",
-                    ).range(nested.blockName.textRange).create()
+                    val otherVersions = AlloyCrossVersion.versionsWithBlock(ctx.component.name, ctx.path, nestedName)
+                    if (otherVersions.isNotEmpty()) {
+                        reportVersionMismatch(
+                            holder, nested.blockName.textRange, block.project,
+                            "Nested block `$nestedName` in `${ctx.component.name}${pathSuffix(ctx.path)}`",
+                            otherVersions,
+                        )
+                    } else {
+                        holder.newAnnotation(
+                            HighlightSeverity.WARNING,
+                            "Unknown nested block `$nestedName` in `${ctx.component.name}${pathSuffix(ctx.path)}`",
+                        ).range(nested.blockName.textRange).create()
+                    }
                 }
             }
         }
@@ -112,6 +143,59 @@ class AlloyCatalogAnnotator : Annotator {
 
     private fun pathSuffix(path: List<String>): String =
         if (path.isEmpty()) "" else " > " + path.joinToString(" > ")
+
+    /**
+     * A top-level block whose name didn't resolve in the active catalog. If the name is a real
+     * component in another bundled version, flag a version mismatch and offer to switch; otherwise
+     * stay quiet (unknown-everywhere names are handled elsewhere / tolerated, so the catalog can
+     * lag upstream without red squiggles).
+     */
+    private fun annotateComponentVersionMismatch(block: AlloyBlock, holder: AnnotationHolder) {
+        // Only the outermost block: a `declare` module body counts as top-level, but a block
+        // nested inside another (unknown) block would just cascade the same error.
+        val parentBlock = PsiTreeUtil.getParentOfType(block, AlloyBlock::class.java, /* strict = */ true)
+        val parentIsDeclare = parentBlock != null &&
+            AlloyPsiUtil.blockNameIdents(parentBlock.blockName).joinToString(".") == "declare"
+        if (parentBlock != null && !parentIsDeclare) return
+
+        val name = AlloyPsiUtil.blockNameIdents(block.blockName).joinToString(".")
+        // Component names are always dotted (`namespace.component`); single-segment names are
+        // `declare` modules or custom-module invocations — never catalog components.
+        if ('.' !in name) return
+
+        val available = AlloyCrossVersion.versionsWithComponent(name)
+        if (available.isEmpty()) return
+
+        reportVersionMismatch(holder, block.blockName.textRange, block.project, "Component `$name`", available)
+    }
+
+    /**
+     * Emits an ERROR saying [subject] isn't in the project's selected catalog but is available in
+     * [available], with a "switch to vX" quick-fix per candidate version (newest first). No-ops if
+     * the only version that has it is the one already selected.
+     */
+    private fun reportVersionMismatch(
+        holder: AnnotationHolder,
+        range: TextRange,
+        project: Project,
+        subject: String,
+        available: List<String>,
+    ) {
+        val active = AlloyCatalogService.getInstance(project).activeVersion
+        val others = available.filter { it != active }
+        if (others.isEmpty()) return
+
+        val builder = holder.newAnnotation(
+            HighlightSeverity.ERROR,
+            "$subject is not available in the selected Alloy version" +
+                (if (active.isNotBlank()) " ($active)" else "") +
+                ". Available in: ${others.joinToString(", ")}.",
+        ).range(range)
+        for (version in others.sortedByDescending { AlloyVersions.parse(it) }) {
+            builder.withFix(SwitchAlloyVersionFix(version))
+        }
+        builder.create()
+    }
 
     // -------------------------------------------------------------------------------------
     // Reference-level: port-type mismatch.

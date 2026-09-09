@@ -32,9 +32,6 @@ import java.util.concurrent.atomic.AtomicBoolean
 @Service(Service.Level.PROJECT)
 class AlloyCatalogService(private val project: Project) {
 
-    // version tag -> parsed catalog. Parsed lazily on first access to that version.
-    private val cache = ConcurrentHashMap<String, AlloyCatalog>()
-
     // Result of the `alloy --version` probe, mapped to the nearest bundled version. Null until a
     // probe succeeds (or if none has yet). Once set, resolveVersion() short-circuits to it.
     @Volatile private var autoDetected: String? = null
@@ -45,7 +42,7 @@ class AlloyCatalogService(private val project: Project) {
 
     /** The catalog for this project's currently-resolved Alloy version. */
     val catalog: AlloyCatalog
-        get() = loadVersion(activeVersion)
+        get() = loadCatalog(activeVersion)
 
     /** The version tag currently in effect for this project (a manifest version, or "" if none). */
     val activeVersion: String
@@ -69,30 +66,6 @@ class AlloyCatalogService(private val project: Project) {
                     maybeStartAutoDetect()
                     sharedManifest.resolvedDefault()
                 }
-        }
-    }
-
-    private fun loadVersion(version: String): AlloyCatalog {
-        if (version.isBlank()) return AlloyCatalog.EMPTY
-        return cache.getOrPut(version) { parseCatalog(version) }
-    }
-
-    private fun parseCatalog(version: String): AlloyCatalog {
-        val path = "/alloy/catalogs/$version/components.json"
-        val stream = AlloyCatalogService::class.java.getResourceAsStream(path)
-        if (stream == null) {
-            LOG.warn("Alloy catalog resource $path not found — completions and validation disabled for $version")
-            return AlloyCatalog.EMPTY
-        }
-        return try {
-            stream.use { raw ->
-                InputStreamReader(raw, StandardCharsets.UTF_8).use { reader ->
-                    Gson().fromJson(reader, AlloyCatalog::class.java) ?: AlloyCatalog.EMPTY
-                }
-            }.also { LOG.info("Loaded Alloy catalog v=${it.alloyVersion} components=${it.components.size}") }
-        } catch (t: Throwable) {
-            LOG.warn("Failed to parse Alloy catalog at $path", t)
-            AlloyCatalog.EMPTY
         }
     }
 
@@ -153,7 +126,42 @@ class AlloyCatalogService(private val project: Project) {
         // Manifest is identical across projects, so load it once for the whole application.
         private val sharedManifest: AlloyCatalogManifest by lazy { AlloyCatalogManifest.loadBundled() }
 
+        // version tag -> parsed catalog. Catalogs are immutable and identical across projects, so
+        // this is cached application-wide (the cross-version index and every project share it).
+        private val catalogCache = ConcurrentHashMap<String, AlloyCatalog>()
+
         fun getInstance(project: Project): AlloyCatalogService =
             project.getService(AlloyCatalogService::class.java)
+
+        /** The bundled-catalog index (shared across projects; version-independent). */
+        fun manifest(): AlloyCatalogManifest = sharedManifest
+
+        /**
+         * Loads and memoizes a bundled catalog by version tag. Returns [AlloyCatalog.EMPTY] for a
+         * blank/absent/corrupt catalog so callers degrade gracefully rather than crashing.
+         */
+        fun loadCatalog(version: String): AlloyCatalog {
+            if (version.isBlank()) return AlloyCatalog.EMPTY
+            return catalogCache.getOrPut(version) { parseCatalog(version) }
+        }
+
+        private fun parseCatalog(version: String): AlloyCatalog {
+            val path = "/alloy/catalogs/$version/components.json"
+            val stream = AlloyCatalogService::class.java.getResourceAsStream(path)
+            if (stream == null) {
+                LOG.warn("Alloy catalog resource $path not found — completions and validation disabled for $version")
+                return AlloyCatalog.EMPTY
+            }
+            return try {
+                stream.use { raw ->
+                    InputStreamReader(raw, StandardCharsets.UTF_8).use { reader ->
+                        Gson().fromJson(reader, AlloyCatalog::class.java) ?: AlloyCatalog.EMPTY
+                    }
+                }.also { LOG.info("Loaded Alloy catalog v=${it.alloyVersion} components=${it.components.size}") }
+            } catch (t: Throwable) {
+                LOG.warn("Failed to parse Alloy catalog at $path", t)
+                AlloyCatalog.EMPTY
+            }
+        }
     }
 }

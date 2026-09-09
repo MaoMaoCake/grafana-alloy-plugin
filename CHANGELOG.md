@@ -26,6 +26,17 @@ versions track the JetBrains Marketplace releases.
   run. The catalog service is now project-level, so different projects can target
   different Alloy versions.
 
+- **Version-mismatch inspection with a "switch version" quick-fix.** When a
+  component, argument, or nested block isn't in the selected catalog but *is*
+  available in another bundled version, it's now flagged as an **error** that
+  names the versions offering it (e.g. `Component otelcol.exporter.file is not
+  available in the selected Alloy version (v1.9.2). Available in: v1.17.1,
+  v1.18.1, v1.19.2.`) — instead of the previous vague "unknown" — with a
+  one-click **Switch Alloy catalog version to vX** fix per candidate version.
+  This works in both directions: features added in a newer release *and* features
+  removed from it. Names unknown in every bundled version keep the plain "unknown"
+  warning.
+
 ## [0.3.3] — 2026-09-07
 
 ### Fixed
